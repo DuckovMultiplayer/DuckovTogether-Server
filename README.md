@@ -2,21 +2,27 @@
 
 A headless dedicated server solution for multiplayer gaming experiences.
 
-## Overview
+无头专用服务器解决方案，提供多人游戏体验。
+
+## Overview | 概述
 
 DuckovTogether Server is an **independently developed** dedicated server application. This project is created from scratch and is **not affiliated with, derived from, or based on any other project or codebase**.
 
+DuckovTogether Server 是一个**独立开发**的专用服务器应用程序。本项目从零开始创建，**与任何其他项目或代码库无关联、无衍生关系**。
+
 This software is developed independently by tlkppm and contributors.
 
-## Features
+本软件由 tlkppm 及贡献者独立开发。
 
-- **Headless Operation** - Deploy on cloud servers without display requirements
-- **Auto Resource Detection** - Automatic game path detection via Windows Registry and Steam libraries
-- **Data Validation** - Built-in validation layer for data integrity
-- **State Synchronization** - Efficient synchronization for players, AI entities, and items
-- **Configurable** - Flexible server configuration options
+## Features | 功能特性
 
-## System Requirements
+- **Headless Operation | 无头运行** - Deploy on cloud servers without display requirements | 可部署在无显示器的云服务器
+- **Auto Resource Detection | 自动资源检测** - Automatic game path detection via Windows Registry and Steam libraries | 通过注册表和Steam库自动检测游戏路径
+- **Data Validation | 数据验证** - Built-in validation layer for data integrity | 内置验证层确保数据完整性
+- **State Synchronization | 状态同步** - Efficient synchronization for players, AI entities, and items | 高效同步玩家、AI和物品状态
+- **Configurable | 可配置** - Flexible server configuration options | 灵活的服务器配置选项
+
+## System Requirements | 系统要求
 
 | Requirement | Specification |
 |-------------|---------------|
@@ -24,15 +30,17 @@ This software is developed independently by tlkppm and contributors.
 | Runtime | .NET 8.0 |
 | Network | Open port (default: 9050) |
 
-## Installation
+## Installation | 安装
 
-1. Download the latest release from the Releases page
-2. Extract to your preferred directory
-3. Run `DuckovTogetherServer.exe`
+1. Download the latest release from the Releases page | 从 Releases 页面下载最新版本
+2. Extract to your preferred directory | 解压到任意目录
+3. Run `DuckovTogetherServer.exe` | 运行 `DuckovTogetherServer.exe`
 
 The server will automatically detect the game installation path.
 
-## Configuration
+服务器将自动检测游戏安装路径。
+
+## Configuration | 配置
 
 Edit `server_config.json`:
 
@@ -63,7 +71,7 @@ DuckovTogetherServer.exe --port=9050 --max-players=4 --game-path="C:\Games\Ducko
 ## Building from Source
 
 ```bash
-git clone https://github.com/tlkppm/DuckovTogether-Server.git
+git clone https://github.com/DuckovMultiplayer/DuckovTogether-Server.git
 cd DuckovTogether-Server
 dotnet build -c Release
 ```
