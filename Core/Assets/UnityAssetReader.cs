@@ -41,15 +41,232 @@ public class UnityAssetReader
         _typeAnalyzer.Initialize(gamePath);
         
         _assetsManager = new AssetsManager();
+        _assetsManager.UseTemplateFieldCache = true;
+        _assetsManager.UseMonoTemplateFieldCache = true;
+        
+        LoadClassDatabase(gamePath);
         
         LoadLocalization();
-        LoadGameAssets();
         
-        ProcessExtractedData();
+        if (!LoadExportedData())
+        {
+            Console.WriteLine("[AssetReader] No exported data found, trying native parsing...");
+            
+            if (!TryNativeParse())
+            {
+                Console.WriteLine("[AssetReader] Native parse incomplete, trying AssetsTools...");
+                LoadGameAssets();
+                ProcessExtractedData();
+            }
+        }
         
         Console.WriteLine($"[AssetReader] Loaded: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types");
-        Console.WriteLine($"[AssetReader] ScriptableObjects extracted: {ScriptableObjects.Count}");
         return true;
+    }
+    
+    private void LoadClassDatabase(string gamePath)
+    {
+        var managedPath = Path.Combine(gamePath, "Duckov_Data", "Managed");
+        if (!Directory.Exists(managedPath))
+        {
+            Console.WriteLine("[AssetReader] Managed folder not found");
+            return;
+        }
+        
+        var assemblyPaths = new List<string>();
+        var targetAssemblies = new[] { "Assembly-CSharp.dll", "TeamSoda.Duckov.Core.dll", "ItemStatsSystem.dll" };
+        
+        foreach (var asm in targetAssemblies)
+        {
+            var asmPath = Path.Combine(managedPath, asm);
+            if (File.Exists(asmPath))
+            {
+                assemblyPaths.Add(asmPath);
+            }
+        }
+        
+        Console.WriteLine($"[AssetReader] Found {assemblyPaths.Count} game assemblies");
+    }
+    
+    private bool TryNativeParse()
+    {
+        var parser = NativeAssetParser.Instance;
+        if (!parser.Parse(_gamePath!))
+        {
+            return false;
+        }
+        
+        foreach (var item in parser.Items.Values)
+        {
+            if (!Items.ContainsKey(item.TypeId))
+            {
+                Items[item.TypeId] = new ItemData
+                {
+                    TypeId = item.TypeId,
+                    Name = item.Name,
+                    DisplayName = item.DisplayName,
+                    Category = item.Category
+                };
+            }
+        }
+        
+        foreach (var ai in parser.AITypes.Values)
+        {
+            if (!AITypes.ContainsKey(ai.TypeName))
+            {
+                AITypes[ai.TypeName] = new AITypeData
+                {
+                    TypeName = ai.TypeName,
+                    MaxHealth = 100f,
+                    MoveSpeed = 3.5f,
+                    AttackDamage = 10f
+                };
+            }
+        }
+        
+        parser.SaveToJson(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "Parsed"));
+        
+        return Items.Count > 0;
+    }
+    
+    private bool LoadExportedData()
+    {
+        var exportPaths = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "Low", "Team Soda", "Escape from Duckov", "ServerData"),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "Exported"),
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ServerData")
+        };
+        
+        string? exportPath = null;
+        foreach (var path in exportPaths)
+        {
+            if (Directory.Exists(path))
+            {
+                exportPath = path;
+                break;
+            }
+        }
+        
+        if (exportPath == null)
+        {
+            Console.WriteLine("[AssetReader] Export paths checked:");
+            foreach (var p in exportPaths)
+            {
+                Console.WriteLine($"  - {p}");
+            }
+            return false;
+        }
+        
+        Console.WriteLine($"[AssetReader] Loading exported data from: {exportPath}");
+        
+        var itemsFile = Path.Combine(exportPath, "items.json");
+        if (File.Exists(itemsFile))
+        {
+            LoadItemsFromJson(itemsFile);
+        }
+        
+        var scenesDir = Path.Combine(exportPath, "scenes");
+        if (Directory.Exists(scenesDir))
+        {
+            foreach (var sceneFile in Directory.GetFiles(scenesDir, "*.json"))
+            {
+                LoadSceneFromJson(sceneFile);
+            }
+        }
+        
+        return Items.Count > 0 || Scenes.Count > 0;
+    }
+    
+    private void LoadItemsFromJson(string path)
+    {
+        try
+        {
+            var json = File.ReadAllText(path);
+            var items = Newtonsoft.Json.JsonConvert.DeserializeObject<List<ExportedItemData>>(json);
+            
+            if (items != null)
+            {
+                foreach (var item in items)
+                {
+                    Items[item.TypeId] = new ItemData
+                    {
+                        TypeId = item.TypeId,
+                        Name = item.Name ?? "",
+                        DisplayName = item.DisplayName ?? item.Name ?? "",
+                        Category = item.Category ?? "Unknown",
+                        MaxStack = item.StackSize > 0 ? item.StackSize : 1,
+                        Weight = item.Weight
+                    };
+                }
+                Console.WriteLine($"[AssetReader] Loaded {items.Count} items from JSON");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AssetReader] Failed to load items JSON: {ex.Message}");
+        }
+    }
+    
+    private void LoadSceneFromJson(string path)
+    {
+        try
+        {
+            var json = File.ReadAllText(path);
+            var scene = Newtonsoft.Json.JsonConvert.DeserializeObject<ExportedSceneData>(json);
+            
+            if (scene != null && !string.IsNullOrEmpty(scene.SceneId))
+            {
+                var sceneData = new SceneData
+                {
+                    SceneId = scene.SceneId,
+                    BuildIndex = scene.BuildIndex
+                };
+                
+                if (scene.AISpawns != null)
+                {
+                    foreach (var spawn in scene.AISpawns)
+                    {
+                        sceneData.AISpawns.Add(new AISpawnData
+                        {
+                            SpawnerId = spawn.SpawnerId,
+                            Position = new Vector3Data
+                            {
+                                X = spawn.Position?.Length > 0 ? spawn.Position[0] : 0,
+                                Y = spawn.Position?.Length > 1 ? spawn.Position[1] : 0,
+                                Z = spawn.Position?.Length > 2 ? spawn.Position[2] : 0
+                            },
+                            AIType = spawn.SpawnerName ?? ""
+                        });
+                    }
+                }
+                
+                if (scene.LootSpawns != null)
+                {
+                    foreach (var spawn in scene.LootSpawns)
+                    {
+                        sceneData.LootSpawns.Add(new LootSpawnData
+                        {
+                            ContainerId = spawn.ContainerId,
+                            Position = new Vector3Data
+                            {
+                                X = spawn.Position?.Length > 0 ? spawn.Position[0] : 0,
+                                Y = spawn.Position?.Length > 1 ? spawn.Position[1] : 0,
+                                Z = spawn.Position?.Length > 2 ? spawn.Position[2] : 0
+                            },
+                            ContainerType = spawn.ContainerName ?? ""
+                        });
+                    }
+                }
+                
+                Scenes[scene.SceneId] = sceneData;
+                Console.WriteLine($"[AssetReader] Loaded scene: {scene.SceneId} ({sceneData.AISpawns.Count} AI, {sceneData.LootSpawns.Count} loot)");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AssetReader] Failed to load scene JSON: {ex.Message}");
+        }
     }
     
     private void LoadLocalization()
@@ -144,7 +361,9 @@ public class UnityAssetReader
             int monoCount = 0;
             int goCount = 0;
             var scriptNames = new HashSet<string>();
+            var assetNames = new HashSet<string>();
             
+            bool firstMono = true;
             foreach (var info in assetsFile.Metadata.AssetInfos)
             {
                 try
@@ -152,6 +371,20 @@ public class UnityAssetReader
                     if (info.TypeId == (int)AssetClassID.MonoBehaviour)
                     {
                         monoCount++;
+                        
+                        var baseField = _assetsManager!.GetBaseField(assetsFileInst, info);
+                        
+                        if (firstMono && Path.GetFileName(path) == "resources.assets")
+                        {
+                            firstMono = false;
+                            Console.WriteLine($"[Debug] MonoBehaviour fields: {string.Join(", ", baseField.Children.Take(10).Select(c => c.FieldName))}");
+                        }
+                        
+                        var name = baseField["m_Name"]?.AsString ?? "";
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            assetNames.Add(name);
+                        }
                         ProcessMonoBehaviour(assetsFileInst, info, scriptNames);
                     }
                     else if (info.TypeId == (int)AssetClassID.GameObject)
@@ -160,7 +393,20 @@ public class UnityAssetReader
                         ProcessGameObject(assetsFileInst, info);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    if (firstMono && info.TypeId == (int)AssetClassID.MonoBehaviour)
+                    {
+                        Console.WriteLine($"[Debug] MonoBehaviour read error: {ex.Message}");
+                        firstMono = false;
+                    }
+                }
+            }
+            
+            if (monoCount > 0 && assetNames.Count > 0)
+            {
+                var sampleNames = assetNames.Take(5);
+                Console.WriteLine($"[AssetReader] {Path.GetFileName(path)}: {monoCount} MonoBehaviours, samples: {string.Join(", ", sampleNames)}");
             }
             
             if (scriptNames.Count > 0)
@@ -840,4 +1086,40 @@ public class ScriptableObjectData
     public string Name { get; set; } = "";
     public string TypeName { get; set; } = "";
     public Dictionary<string, object?> Fields { get; set; } = new();
+}
+
+public class ExportedItemData
+{
+    public int TypeId { get; set; }
+    public string? Name { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Category { get; set; }
+    public int StackSize { get; set; }
+    public float Weight { get; set; }
+    public int Value { get; set; }
+    public float Durability { get; set; }
+}
+
+public class ExportedSceneData
+{
+    public string? SceneId { get; set; }
+    public int BuildIndex { get; set; }
+    public List<ExportedAISpawnData>? AISpawns { get; set; }
+    public List<ExportedLootSpawnData>? LootSpawns { get; set; }
+    public List<float[]>? PlayerSpawns { get; set; }
+}
+
+public class ExportedAISpawnData
+{
+    public int SpawnerId { get; set; }
+    public float[]? Position { get; set; }
+    public string? SpawnerName { get; set; }
+}
+
+public class ExportedLootSpawnData
+{
+    public int ContainerId { get; set; }
+    public float[]? Position { get; set; }
+    public string? ContainerName { get; set; }
+    public int Capacity { get; set; }
 }
