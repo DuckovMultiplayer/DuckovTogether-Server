@@ -96,6 +96,22 @@ public class UnityAssetReader
             return false;
         }
         
+        var extractor = GameDataExtractor.Instance;
+        extractor.Extract(_gamePath!);
+        extractor.SaveToFolder(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Data", "GameData"));
+        
+        foreach (var scene in extractor.Scenes.Values)
+        {
+            if (!Scenes.ContainsKey(scene.SceneId))
+            {
+                Scenes[scene.SceneId] = new SceneData
+                {
+                    SceneId = scene.SceneId,
+                    BuildIndex = scene.BuildIndex
+                };
+            }
+        }
+        
         foreach (var item in parser.Items.Values)
         {
             if (!Items.ContainsKey(item.TypeId))
