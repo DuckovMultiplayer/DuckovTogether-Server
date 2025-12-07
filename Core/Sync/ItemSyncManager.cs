@@ -1,4 +1,5 @@
 using System.Numerics;
+using DuckovTogether.Core.Assets;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using LiteNetLib;
@@ -22,6 +23,51 @@ public class ItemSyncManager
     {
         _netService = netService;
         Console.WriteLine("[ItemSync] Initialized");
+    }
+    
+    public bool ValidateItem(int itemTypeId, out string? itemName)
+    {
+        itemName = null;
+        var validation = GameDataValidator.Instance.ValidateItem(itemTypeId);
+        if (validation.IsValid && validation.Data is ParsedItemData item)
+        {
+            itemName = item.DisplayName;
+            return true;
+        }
+        return !GameDataValidator.Instance.IsDataAvailable;
+    }
+    
+    public bool TryPickupItem(int playerId, int containerId, int slotIndex, int itemTypeId, int count, out string? error)
+    {
+        error = null;
+        
+        var validation = GameDataValidator.Instance.ValidateItem(itemTypeId);
+        if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
+        {
+            error = validation.ErrorMessage;
+            Console.WriteLine($"[ItemSync] Invalid item pickup by player {playerId}: {error}");
+            return false;
+        }
+        
+        OnItemPickup(playerId, containerId, slotIndex, itemTypeId, count);
+        return true;
+    }
+    
+    public bool TryDropItem(int playerId, int itemTypeId, int count, Vector3 position, out int dropId, out string? error)
+    {
+        dropId = 0;
+        error = null;
+        
+        var validation = GameDataValidator.Instance.ValidateItem(itemTypeId);
+        if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
+        {
+            error = validation.ErrorMessage;
+            Console.WriteLine($"[ItemSync] Invalid item drop by player {playerId}: {error}");
+            return false;
+        }
+        
+        dropId = OnItemDrop(playerId, itemTypeId, count, position);
+        return true;
     }
     
     public void OnItemPickup(int playerId, int containerId, int slotIndex, int itemTypeId, int count)

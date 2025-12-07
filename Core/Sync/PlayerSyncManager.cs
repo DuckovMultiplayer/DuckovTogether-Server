@@ -1,3 +1,13 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
 using System.Numerics;
 using DuckovTogether.Net;
 using LiteNetLib;
@@ -64,6 +74,10 @@ public class PlayerSyncManager
         state.Rotation = rotation;
         state.Velocity = velocity;
         state.LastUpdate = DateTime.Now;
+        
+        DeltaSyncManager.Instance.UpdatePlayerState(peerId, position, rotation, velocity,
+            state.CurrentHealth, state.WeaponId, state.Speed, state.DirX, state.DirY,
+            state.HandState, state.GunReady, state.Dashing, state.Reloading);
     }
     
     public void UpdatePlayerAnimation(int peerId, float speed, float dirX, float dirY, int handState, bool gunReady, bool dashing, bool reloading)
@@ -81,6 +95,9 @@ public class PlayerSyncManager
         state.GunReady = gunReady;
         state.Dashing = dashing;
         state.Reloading = reloading;
+        
+        DeltaSyncManager.Instance.UpdatePlayerState(peerId, state.Position, state.Rotation, state.Velocity,
+            state.CurrentHealth, state.WeaponId, speed, dirX, dirY, handState, gunReady, dashing, reloading);
     }
     
     public void UpdatePlayerHealth(int peerId, float currentHealth, float maxHealth)
@@ -114,6 +131,7 @@ public class PlayerSyncManager
     public void OnPlayerDisconnected(int peerId)
     {
         _playerStates.Remove(peerId);
+        DeltaSyncManager.Instance.RemovePlayer(peerId);
         
         var data = new PlayerDisconnectSync
         {

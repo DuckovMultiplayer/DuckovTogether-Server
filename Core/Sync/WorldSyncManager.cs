@@ -1,4 +1,5 @@
 using System.Numerics;
+using DuckovTogether.Core.Assets;
 using DuckovTogether.Net;
 using LiteNetLib;
 using LiteNetLib.Utils;
@@ -112,6 +113,79 @@ public class WorldSyncManager
         };
         
         BroadcastJson(data);
+    }
+    
+    private readonly Dictionary<int, ExtractingPlayerState> _extractingPlayers = new();
+    
+    public bool TryStartExtract(string extractPointId, int playerId, out string? error)
+    {
+        error = null;
+        
+        var validation = GameDataValidator.Instance.ValidateExtractPoint(extractPointId, _currentScene);
+        if (!validation.IsValid)
+        {
+            error = validation.ErrorMessage;
+            Console.WriteLine($"[WorldSync] Extract validation failed for player {playerId}: {error}");
+            return false;
+        }
+        
+        var extractData = GameDataValidator.Instance.GetExtractData(extractPointId);
+        float extractTime = extractData?.ExtractTime ?? 10f;
+        
+        _extractingPlayers[playerId] = new ExtractingPlayerState
+        {
+            PlayerId = playerId,
+            ExtractPointId = extractPointId,
+            StartTime = DateTime.Now,
+            RequiredTime = extractTime
+        };
+        
+        var data = new ExtractSync
+        {
+            type = "extractStart",
+            extractId = extractPointId.GetHashCode(),
+            extractPointId = extractPointId,
+            playerId = playerId,
+            extractTime = extractTime,
+            timestamp = DateTime.Now.Ticks
+        };
+        
+        BroadcastJson(data);
+        Console.WriteLine($"[WorldSync] Player {playerId} started extracting at {extractPointId}");
+        return true;
+    }
+    
+    public void CancelExtract(int playerId)
+    {
+        if (_extractingPlayers.Remove(playerId, out var state))
+        {
+            var data = new ExtractSync
+            {
+                type = "extractCancel",
+                extractId = state.ExtractPointId.GetHashCode(),
+                extractPointId = state.ExtractPointId,
+                playerId = playerId,
+                timestamp = DateTime.Now.Ticks
+            };
+            BroadcastJson(data);
+        }
+    }
+    
+    public void CompleteExtract(int playerId)
+    {
+        if (_extractingPlayers.Remove(playerId, out var state))
+        {
+            var data = new ExtractSync
+            {
+                type = "extractComplete",
+                extractId = state.ExtractPointId.GetHashCode(),
+                extractPointId = state.ExtractPointId,
+                playerId = playerId,
+                timestamp = DateTime.Now.Ticks
+            };
+            BroadcastJson(data);
+            Console.WriteLine($"[WorldSync] Player {playerId} extracted at {state.ExtractPointId}");
+        }
     }
     
     public void OnExtractStart(int extractId, int playerId)
@@ -274,8 +348,18 @@ public class ExtractSync
 {
     public string type { get; set; } = "";
     public int extractId { get; set; }
+    public string extractPointId { get; set; } = "";
     public int playerId { get; set; }
+    public float extractTime { get; set; }
     public long timestamp { get; set; }
+}
+
+public class ExtractingPlayerState
+{
+    public int PlayerId { get; set; }
+    public string ExtractPointId { get; set; } = "";
+    public DateTime StartTime { get; set; }
+    public float RequiredTime { get; set; }
 }
 
 public class DestructibleSync

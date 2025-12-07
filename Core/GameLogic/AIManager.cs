@@ -1,4 +1,15 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
 using System.Numerics;
+using DuckovTogether.Core.Sync;
 using DuckovTogether.Net;
 
 namespace DuckovTogether.Core.GameLogic;
@@ -9,6 +20,7 @@ public class AIManager
     public static AIManager Instance => _instance ??= new AIManager();
     
     private readonly Dictionary<int, AIEntity> _entities = new();
+    private readonly Dictionary<int, AIStateMachine> _stateMachines = new();
     private readonly Dictionary<string, List<AISpawnPoint>> _spawnPoints = new();
     private readonly object _lock = new();
     
@@ -18,6 +30,9 @@ public class AIManager
     private const double BROADCAST_INTERVAL = 0.1;
     
     public int EntityCount => _entities.Count;
+    
+    public event Action<int, int, float>? OnAIAttack;
+    public event Action<int>? OnAIDeath;
     
     public void LoadSceneData(string sceneId)
     {
@@ -55,9 +70,11 @@ public class AIManager
     {
         lock (_lock)
         {
+            var entityId = GenerateEntityId(point);
+            
             var entity = new AIEntity
             {
-                EntityId = GenerateEntityId(point),
+                EntityId = entityId,
                 TypeName = point.AIType,
                 Type = point.AICategory,
                 Position = point.Position,
@@ -76,10 +93,67 @@ public class AIManager
                 State = point.PatrolPath.Count > 0 ? AIState.Patrol : AIState.Idle
             };
             
-            _entities[entity.EntityId] = entity;
-            Console.WriteLine($"[AIManager] Spawned AI: {entity.TypeName} (ID: {entity.EntityId}) at {entity.Position}");
+            var stateMachine = new AIStateMachine(entityId, point.MaxHealth)
+            {
+                Position = point.Position,
+                DetectRange = point.DetectRange,
+                AttackRange = point.AttackRange,
+                MoveSpeed = point.MoveSpeed,
+                Damage = point.AttackDamage,
+                BehaviorType = point.AICategory switch
+                {
+                    AIType.Boss => AIBehaviorType.Boss,
+                    AIType.Elite => AIBehaviorType.Aggressive,
+                    _ => AIBehaviorType.Defensive
+                }
+            };
+            
+            if (point.PatrolPath.Count > 0)
+                stateMachine.SetPatrolPoints(point.PatrolPath);
+            
+            stateMachine.OnStateChanged += OnStateMachineStateChanged;
+            stateMachine.OnAttack += OnStateMachineAttack;
+            stateMachine.OnDeath += OnStateMachineDeath;
+            
+            _entities[entityId] = entity;
+            _stateMachines[entityId] = stateMachine;
+            
+            DeltaSyncManager.Instance.UpdateAIState(entityId, entity.Position, 
+                new Vector3(0, 0, 0), entity.CurrentHealth, (int)entity.State);
+            
+            Console.WriteLine($"[AIManager] Spawned AI: {entity.TypeName} (ID: {entityId}) at {entity.Position}");
             return entity;
         }
+    }
+    
+    private void OnStateMachineStateChanged(int entityId, AIState oldState, AIState newState)
+    {
+        lock (_lock)
+        {
+            if (_entities.TryGetValue(entityId, out var entity))
+            {
+                entity.State = newState;
+                entity.LastStateChange = DateTime.Now;
+            }
+        }
+    }
+    
+    private void OnStateMachineAttack(int entityId, int targetPlayerId, float damage)
+    {
+        OnAIAttack?.Invoke(entityId, targetPlayerId, damage);
+    }
+    
+    private void OnStateMachineDeath(int entityId)
+    {
+        lock (_lock)
+        {
+            if (_entities.TryGetValue(entityId, out var entity))
+            {
+                entity.State = AIState.Dead;
+                entity.CurrentHealth = 0;
+            }
+        }
+        OnAIDeath?.Invoke(entityId);
     }
     
     public void Update(Dictionary<int, PlayerState> players)
@@ -92,10 +166,29 @@ public class AIManager
         
         lock (_lock)
         {
-            foreach (var entity in _entities.Values)
+            foreach (var kvp in _stateMachines)
             {
-                if (entity.IsDead) continue;
-                UpdateAIBehavior(entity, players, deltaTime);
+                var entityId = kvp.Key;
+                var sm = kvp.Value;
+                
+                if (sm.CurrentState == AIState.Dead) continue;
+                
+                sm.Update(deltaTime, players);
+                
+                if (_entities.TryGetValue(entityId, out var entity))
+                {
+                    entity.Position = sm.Position;
+                    entity.Forward = new Vector3(
+                        MathF.Sin(sm.Rotation.Y * 0.0174533f),
+                        0,
+                        MathF.Cos(sm.Rotation.Y * 0.0174533f));
+                    entity.CurrentHealth = sm.CurrentHealth;
+                    entity.State = sm.CurrentState;
+                    entity.LastUpdateTime = now;
+                    
+                    DeltaSyncManager.Instance.UpdateAIState(entityId, sm.Position, 
+                        sm.Rotation, sm.CurrentHealth, (int)sm.CurrentState);
+                }
             }
         }
     }
@@ -250,11 +343,31 @@ public class AIManager
     {
         lock (_lock)
         {
-            if (_entities.TryGetValue(entityId, out var entity))
+            if (_stateMachines.TryGetValue(entityId, out var sm))
             {
-                entity.TakeDamage(damage, fromPlayerId);
-                Console.WriteLine($"[AIManager] AI {entityId} took {damage} damage from player {fromPlayerId}, HP: {entity.CurrentHealth}/{entity.MaxHealth}");
+                sm.TakeDamage(damage, fromPlayerId);
+                
+                if (_entities.TryGetValue(entityId, out var entity))
+                {
+                    entity.CurrentHealth = sm.CurrentHealth;
+                    entity.State = sm.CurrentState;
+                    
+                    DeltaSyncManager.Instance.UpdateAIState(entityId, sm.Position, 
+                        sm.Rotation, sm.CurrentHealth, (int)sm.CurrentState);
+                }
+                
+                Console.WriteLine($"[AIManager] AI {entityId} took {damage} damage from player {fromPlayerId}, HP: {sm.CurrentHealth}/{sm.MaxHealth}");
             }
+        }
+    }
+    
+    public void RemoveEntity(int entityId)
+    {
+        lock (_lock)
+        {
+            _entities.Remove(entityId);
+            _stateMachines.Remove(entityId);
+            DeltaSyncManager.Instance.RemoveAI(entityId);
         }
     }
 }

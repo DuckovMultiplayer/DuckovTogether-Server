@@ -1,3 +1,13 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
 using DuckovTogether.Core;
 using DuckovTogether.Core.Assets;
 using DuckovTogether.Core.GameLogic;
@@ -5,6 +15,7 @@ using DuckovTogether.Core.Save;
 using DuckovTogether.Core.Security;
 using DuckovTogether.Core.World;
 using DuckovTogether.Net;
+using DuckovTogether.Plugins;
 
 namespace DuckovTogether;
 
@@ -79,6 +90,13 @@ class Program
             {
                 UnityAssetReader.Instance.SaveExtractedData(config.ExtractedDataPath);
                 Console.WriteLine("[Assets] Game resources loaded successfully");
+                
+                var dataPath = Path.Combine(AppContext.BaseDirectory, "Data");
+                if (Directory.Exists(dataPath))
+                {
+                    SceneDataManager.Instance.LoadFromDirectory(dataPath);
+                    Core.Sync.GameDataValidator.Instance.Initialize();
+                }
             }
             else
             {
@@ -97,6 +115,10 @@ class Program
         
         _netService = new HeadlessNetService(config);
         _messageHandler = new MessageHandler(_netService);
+        
+        PluginManager.Instance.Initialize(_netService, AppContext.BaseDirectory);
+        PluginManager.Instance.LoadPlugins();
+        Console.WriteLine();
         
         if (!_netService.Start())
         {
@@ -125,9 +147,12 @@ class Program
         
         while (_running)
         {
+            var deltaTime = (float)(DateTime.Now - lastTick).TotalSeconds;
+            
             _netService.Update();
             _messageHandler.Update();
             GameServer.Instance.Update();
+            PluginManager.Instance.Update(deltaTime);
             
             var elapsed = (DateTime.Now - lastTick).TotalMilliseconds;
             if (elapsed < tickInterval)
@@ -137,6 +162,7 @@ class Program
             lastTick = DateTime.Now;
         }
         
+        PluginManager.Instance.UnloadPlugins();
         GameServer.Instance.Shutdown();
         ValidationService.Instance.Shutdown();
         _netService.Stop();
@@ -160,7 +186,24 @@ class Program
                     Console.WriteLine("  save    - Save all data");
                     Console.WriteLine("  world   - Show world state");
                     Console.WriteLine("  scene <id> - Change scene");
+                    Console.WriteLine("  plugins - List loaded plugins");
                     Console.WriteLine("  quit    - Stop the server");
+                    break;
+                    
+                case "plugins":
+                    var pluginList = PluginManager.Instance.GetPluginList().ToList();
+                    if (pluginList.Count == 0)
+                    {
+                        Console.WriteLine("[Plugins] No plugins loaded");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Plugins] Loaded {pluginList.Count} plugins:");
+                        foreach (var p in pluginList)
+                        {
+                            Console.WriteLine($"  - {p}");
+                        }
+                    }
                     break;
                     
                 case "status":
@@ -202,6 +245,15 @@ class Program
                     Console.WriteLine($"[AI] Total entities: {GameServer.Instance.AI.EntityCount}");
                     break;
                     
+                case "data":
+                    Console.WriteLine($"[Data] Scenes: {SceneDataManager.Instance.Scenes.Count}");
+                    Console.WriteLine($"[Data] Extract Points: {SceneDataManager.Instance.ExtractPoints.Count}");
+                    Console.WriteLine($"[Data] Doors: {SceneDataManager.Instance.Doors.Count}");
+                    Console.WriteLine($"[Data] Weapons: {SceneDataManager.Instance.Weapons.Count}");
+                    Console.WriteLine($"[Data] Items: {SceneDataManager.Instance.Items.Count}");
+                    Console.WriteLine($"[Data] AI Types: {SceneDataManager.Instance.AITypes.Count}");
+                    break;
+                    
                 case "quit":
                 case "exit":
                 case "stop":
@@ -233,7 +285,7 @@ class Program
                             }
                         }
                     }
-                    else
+                    else if (!PluginManager.Instance.TryExecuteCommand(input))
                     {
                         Console.WriteLine($"Unknown command: {input}");
                     }

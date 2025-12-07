@@ -1,3 +1,13 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
 using System.Net;
 using System.Net.Sockets;
 using LiteNetLib;

@@ -1,3 +1,14 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
+using System.Text;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using Newtonsoft.Json;
@@ -79,18 +90,87 @@ public class MessageHandler
         _netService.OnPlayerConnected += OnPlayerConnected;
         _netService.OnPlayerDisconnected += OnPlayerDisconnected;
         
+        MessageQueue.Instance.Initialize(netService);
         SyncManager.Instance.Initialize(netService);
         PlayerSyncManager.Instance.Initialize(netService);
         CombatSyncManager.Instance.Initialize(netService);
         WorldSyncManager.Instance.Initialize(netService);
         ItemSyncManager.Instance.Initialize(netService);
+        
+        AIManager.Instance.OnAIAttack += OnAIAttackPlayer;
+        AIManager.Instance.OnAIDeath += OnAIDeathHandler;
     }
+    
+    private void OnAIAttackPlayer(int entityId, int targetPlayerId, float damage)
+    {
+        CombatSyncManager.Instance.OnPlayerDamage(targetPlayerId, entityId, damage, "ai_attack", 
+            System.Numerics.Vector3.Zero);
+    }
+    
+    private void OnAIDeathHandler(int entityId)
+    {
+        SyncManager.Instance.BroadcastAIDeath(entityId);
+    }
+    
+    private DateTime _lastDeltaSync = DateTime.Now;
+    private const double DELTA_SYNC_INTERVAL = 0.05;
     
     public void Update()
     {
         SyncManager.Instance.Update();
         PlayerSyncManager.Instance.Update();
         WorldSyncManager.Instance.Update(0.016f);
+        
+        MessageQueue.Instance.ProcessQueue();
+        
+        var now = DateTime.Now;
+        if ((now - _lastDeltaSync).TotalSeconds >= DELTA_SYNC_INTERVAL)
+        {
+            _lastDeltaSync = now;
+            BroadcastDeltaSync();
+        }
+    }
+    
+    private void BroadcastDeltaSync()
+    {
+        var dirtyPlayers = DeltaSyncManager.Instance.GetDirtyPlayers();
+        if (dirtyPlayers.Count > 0)
+        {
+            var packet = new DeltaSyncPacket
+            {
+                type = "delta_sync",
+                players = dirtyPlayers,
+                ai = new List<AIDeltaPacket>()
+            };
+            
+            var json = JsonConvert.SerializeObject(packet);
+            var data = CreateJsonMessage(json);
+            MessageQueue.Instance.EnqueueBroadcast(data, MessagePriority.Normal);
+        }
+        
+        var dirtyAI = DeltaSyncManager.Instance.GetDirtyAI();
+        if (dirtyAI.Count > 0)
+        {
+            var packet = new DeltaSyncPacket
+            {
+                type = "delta_sync",
+                players = new List<PlayerDeltaPacket>(),
+                ai = dirtyAI
+            };
+            
+            var json = JsonConvert.SerializeObject(packet);
+            var data = CreateJsonMessage(json);
+            MessageQueue.Instance.EnqueueBroadcast(data, MessagePriority.Normal);
+        }
+    }
+    
+    private byte[] CreateJsonMessage(string json)
+    {
+        var jsonBytes = Encoding.UTF8.GetBytes(json);
+        var data = new byte[1 + jsonBytes.Length];
+        data[0] = (byte)MessageType.JsonMessage;
+        Buffer.BlockCopy(jsonBytes, 0, data, 1, jsonBytes.Length);
+        return data;
     }
     
     private void BroadcastPlayerList()
@@ -491,4 +571,11 @@ public class MessageHandler
             }
         }
     }
+}
+
+public class DeltaSyncPacket
+{
+    public string type { get; set; } = "delta_sync";
+    public List<PlayerDeltaPacket> players { get; set; } = new();
+    public List<AIDeltaPacket> ai { get; set; } = new();
 }

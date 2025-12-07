@@ -1,4 +1,5 @@
 using System.Numerics;
+using DuckovTogether.Core.Assets;
 using DuckovTogether.Net;
 using LiteNetLib;
 using LiteNetLib.Utils;
@@ -18,6 +19,43 @@ public class CombatSyncManager
     {
         _netService = netService;
         Console.WriteLine("[CombatSync] Initialized");
+    }
+    
+    public bool ValidateWeapon(int weaponId, out WeaponData? weaponData)
+    {
+        weaponData = null;
+        var validation = GameDataValidator.Instance.ValidateWeapon(weaponId);
+        if (validation.IsValid && validation.Data is WeaponData weapon)
+        {
+            weaponData = weapon;
+            return true;
+        }
+        return !GameDataValidator.Instance.IsDataAvailable;
+    }
+    
+    public bool TryWeaponFire(int shooterId, int weaponId, Vector3 origin, Vector3 direction, int ammoType, out string? error)
+    {
+        error = null;
+        
+        var validation = GameDataValidator.Instance.ValidateWeapon(weaponId);
+        if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
+        {
+            error = validation.ErrorMessage;
+            Console.WriteLine($"[CombatSync] Invalid weapon fire by player {shooterId}: {error}");
+            return false;
+        }
+        
+        WeaponData? weaponData = validation.Data as WeaponData;
+        float damage = weaponData?.Damage ?? 10f;
+        
+        OnWeaponFire(shooterId, weaponId, origin, direction, ammoType);
+        return true;
+    }
+    
+    public float GetWeaponDamage(int weaponId)
+    {
+        var weapon = GameDataValidator.Instance.GetWeaponData(weaponId);
+        return weapon?.Damage ?? 10f;
     }
     
     public void OnWeaponFire(int shooterId, int weaponId, Vector3 origin, Vector3 direction, int ammoType)

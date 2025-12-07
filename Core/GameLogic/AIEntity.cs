@@ -1,15 +1,28 @@
+// -----------------------------------------------------------------------
+// Duckov Together Server
+// Copyright (c) Duckov Team. All rights reserved.
+// Licensed under the MIT License. See LICENSE file in the project root
+// for full license information.
+// 
+// This software is provided "AS IS", without warranty of any kind.
+// Commercial use requires explicit written permission from the authors.
+// -----------------------------------------------------------------------
+
 using System.Numerics;
 
 namespace DuckovTogether.Core.GameLogic;
 
 public enum AIState
 {
-    Idle,
-    Patrol,
-    Chase,
-    Attack,
-    Flee,
-    Dead
+    Idle = 0,
+    Patrol = 1,
+    Alert = 2,
+    Chase = 3,
+    Attack = 4,
+    Cover = 5,
+    Flee = 6,
+    Dead = 7,
+    Stunned = 8
 }
 
 public enum AIType
