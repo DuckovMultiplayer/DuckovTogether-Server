@@ -13,15 +13,26 @@ public enum MessageType : byte
     PlayerAnimation = 3,
     ChatMessage = 4,
     SceneVote = 5,
+    PlayerEquipment = 6,
+    PlayerHealth = 7,
     JsonMessage = 9,
     AISync = 10,
     AIHealth = 11,
     AIAnimation = 12,
     LootSync = 20,
     ItemPickup = 21,
+    ItemDrop = 22,
+    ItemTransfer = 23,
+    ContainerOpen = 24,
     WeaponFire = 30,
-    Damage = 31,
-    PlayerHealth = 32,
+    WeaponReload = 31,
+    WeaponSwitch = 32,
+    GrenadeThrow = 33,
+    MeleeAttack = 34,
+    Damage = 40,
+    DoorInteract = 50,
+    SwitchInteract = 51,
+    ExtractStart = 52,
     SetId = 100,
     Kick = 101
 }
@@ -69,11 +80,17 @@ public class MessageHandler
         _netService.OnPlayerDisconnected += OnPlayerDisconnected;
         
         SyncManager.Instance.Initialize(netService);
+        PlayerSyncManager.Instance.Initialize(netService);
+        CombatSyncManager.Instance.Initialize(netService);
+        WorldSyncManager.Instance.Initialize(netService);
+        ItemSyncManager.Instance.Initialize(netService);
     }
     
     public void Update()
     {
         SyncManager.Instance.Update();
+        PlayerSyncManager.Instance.Update();
+        WorldSyncManager.Instance.Update(0.016f);
     }
     
     private void BroadcastPlayerList()
@@ -103,6 +120,7 @@ public class MessageHandler
     
     private void OnPlayerDisconnected(int peerId, DisconnectReason reason)
     {
+        PlayerSyncManager.Instance.OnPlayerDisconnected(peerId);
         BroadcastPlayerList();
     }
     
@@ -157,16 +175,160 @@ public class MessageHandler
             case MessageType.PlayerPosition:
                 HandlePlayerPosition(peerId, reader);
                 break;
+            case MessageType.PlayerAnimation:
+                HandlePlayerAnimation(peerId, reader);
+                break;
+            case MessageType.PlayerEquipment:
+                HandlePlayerEquipment(peerId, reader);
+                break;
             case MessageType.ChatMessage:
                 HandleChatMessage(peerId, reader);
                 break;
             case MessageType.JsonMessage:
                 HandleJsonMessage(peerId, reader, channel);
                 break;
+            case MessageType.WeaponFire:
+                HandleWeaponFire(peerId, reader);
+                break;
+            case MessageType.Damage:
+                HandleDamage(peerId, reader);
+                break;
+            case MessageType.ItemPickup:
+                HandleItemPickup(peerId, reader);
+                break;
+            case MessageType.ItemDrop:
+                HandleItemDrop(peerId, reader);
+                break;
+            case MessageType.DoorInteract:
+                HandleDoorInteract(peerId, reader);
+                break;
             default:
                 BroadcastRawMessage(peerId, reader, channel);
                 break;
         }
+    }
+    
+    private void HandlePlayerAnimation(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var speed = reader.GetFloat();
+            var dirX = reader.GetFloat();
+            var dirY = reader.GetFloat();
+            var hand = reader.GetInt();
+            var gunReady = reader.GetBool();
+            var dashing = reader.GetBool();
+            var reloading = reader.GetBool();
+            
+            PlayerSyncManager.Instance.UpdatePlayerAnimation(peerId, speed, dirX, dirY, hand, gunReady, dashing, reloading);
+        }
+        catch { }
+    }
+    
+    private void HandlePlayerEquipment(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var weaponId = reader.GetInt();
+            var armorId = reader.GetInt();
+            var helmetId = reader.GetInt();
+            var hotbarCount = reader.GetInt();
+            var hotbar = new List<int>();
+            for (int i = 0; i < Math.Min(hotbarCount, 10); i++)
+            {
+                hotbar.Add(reader.GetInt());
+            }
+            
+            PlayerSyncManager.Instance.UpdatePlayerEquipment(peerId, weaponId, armorId, helmetId, hotbar);
+        }
+        catch { }
+    }
+    
+    private void HandleWeaponFire(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var weaponId = reader.GetInt();
+            var ox = reader.GetFloat();
+            var oy = reader.GetFloat();
+            var oz = reader.GetFloat();
+            var dx = reader.GetFloat();
+            var dy = reader.GetFloat();
+            var dz = reader.GetFloat();
+            var ammoType = reader.GetInt();
+            
+            CombatSyncManager.Instance.OnWeaponFire(peerId, weaponId, 
+                new System.Numerics.Vector3(ox, oy, oz),
+                new System.Numerics.Vector3(dx, dy, dz), ammoType);
+        }
+        catch { }
+    }
+    
+    private void HandleDamage(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var targetType = reader.GetInt();
+            var targetId = reader.GetInt();
+            var damage = reader.GetFloat();
+            var damageType = reader.GetString();
+            var hx = reader.GetFloat();
+            var hy = reader.GetFloat();
+            var hz = reader.GetFloat();
+            
+            var hitPoint = new System.Numerics.Vector3(hx, hy, hz);
+            
+            if (targetType == 0)
+            {
+                CombatSyncManager.Instance.OnPlayerDamage(targetId, peerId, damage, damageType, hitPoint);
+            }
+            else
+            {
+                CombatSyncManager.Instance.OnAIDamage(targetId, peerId, damage, damageType, hitPoint);
+            }
+        }
+        catch { }
+    }
+    
+    private void HandleItemPickup(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var containerId = reader.GetInt();
+            var slotIndex = reader.GetInt();
+            var itemTypeId = reader.GetInt();
+            var count = reader.GetInt();
+            
+            ItemSyncManager.Instance.OnItemPickup(peerId, containerId, slotIndex, itemTypeId, count);
+        }
+        catch { }
+    }
+    
+    private void HandleItemDrop(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var itemTypeId = reader.GetInt();
+            var count = reader.GetInt();
+            var x = reader.GetFloat();
+            var y = reader.GetFloat();
+            var z = reader.GetFloat();
+            
+            ItemSyncManager.Instance.OnItemDrop(peerId, itemTypeId, count, new System.Numerics.Vector3(x, y, z));
+        }
+        catch { }
+    }
+    
+    private void HandleDoorInteract(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var doorId = reader.GetInt();
+            var isOpen = reader.GetBool();
+            
+            WorldSyncManager.Instance.OnDoorInteract(doorId, isOpen, peerId);
+        }
+        catch { }
     }
     
     private void HandleJsonMessage(int peerId, NetPacketReader reader, byte channel)
