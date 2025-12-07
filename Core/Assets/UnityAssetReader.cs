@@ -510,7 +510,7 @@ public class UnityAssetReader
                         }
                     }
                 }
-                catch { }
+                catch { /* Ignore parse errors */ }
             }
             
             if (sceneData.AISpawns.Count > 0 || sceneData.LootSpawns.Count > 0 || sceneData.PlayerSpawns.Count > 0)
@@ -562,7 +562,7 @@ public class UnityAssetReader
                 ExtractFromAssetName(baseField, info.PathId, name, scriptName);
             }
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
     }
     
     private string InferScriptNameFromAssetName(string assetName)
@@ -642,7 +642,7 @@ public class UnityAssetReader
             
             ScriptableObjects[pathId] = soData;
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
     }
     
     private object? ExtractFieldValue(AssetTypeValueField field)
@@ -857,7 +857,7 @@ public class UnityAssetReader
                 };
             }
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
     }
     
     private void ExtractAITypeData(AssetTypeValueField baseField, string typeName)
@@ -885,7 +885,7 @@ public class UnityAssetReader
             
             AITypes[typeName] = aiData;
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
     }
     
     private void ExtractLootTableData(AssetTypeValueField baseField)
@@ -901,7 +901,7 @@ public class UnityAssetReader
                 Items = new List<LootTableEntry>()
             };
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
     }
     
     private string GetScriptName(AssetsFileInstance inst, AssetTypeValueField scriptRef)
@@ -979,7 +979,7 @@ public class UnityAssetReader
                 }
             }
         }
-        catch { }
+        catch { /* Ignore parse errors */ }
         
         return null;
     }

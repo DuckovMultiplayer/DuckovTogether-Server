@@ -112,6 +112,63 @@ public class HeadlessNetService : INetEventListener
         }
     }
     
+    public IEnumerable<int> GetAllPeerIds()
+    {
+        lock (_lock)
+        {
+            return _players.Keys.ToList();
+        }
+    }
+    
+    public NetPeer? GetPeer(int peerId)
+    {
+        if (_netManager == null) return null;
+        foreach (var peer in _netManager.ConnectedPeerList)
+        {
+            if (peer.Id == peerId) return peer;
+        }
+        return null;
+    }
+    
+    public void Start(int port, string key)
+    {
+        Start();
+    }
+    
+    public void Poll()
+    {
+        Update();
+    }
+    
+    public void SendToAll(byte[] data, DeliveryMethod method)
+    {
+        _writer.Reset();
+        _writer.Put(data);
+        _netManager?.SendToAll(_writer, method);
+    }
+    
+    public void SendToPeer(int peerId, byte[] data, DeliveryMethod method)
+    {
+        var peer = GetPeer(peerId);
+        if (peer != null)
+        {
+            _writer.Reset();
+            _writer.Put(data);
+            peer.Send(_writer, method);
+        }
+    }
+    
+    public void DisconnectPeer(int peerId, string reason)
+    {
+        var peer = GetPeer(peerId);
+        if (peer != null)
+        {
+            _writer.Reset();
+            _writer.Put(reason);
+            peer.Disconnect(_writer);
+        }
+    }
+    
     public void OnPeerConnected(NetPeer peer)
     {
         Console.WriteLine($"[Server] Player connected: {peer.EndPoint} (ID: {peer.Id})");

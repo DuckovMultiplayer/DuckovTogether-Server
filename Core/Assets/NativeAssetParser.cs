@@ -133,7 +133,7 @@ public class NativeAssetParser
                 Console.WriteLine($"[NativeParser] sharedassets{index}: {itemCount} items");
             }
         }
-        catch { }
+        catch { /* Ignore native parse errors */ }
     }
     
     private List<string> ExtractStrings(byte[] data, int minLength, int maxLength)

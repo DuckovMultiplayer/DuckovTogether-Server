@@ -302,7 +302,7 @@ public class MessageHandler
             
             PlayerSyncManager.Instance.UpdatePlayerAnimation(peerId, speed, dirX, dirY, hand, gunReady, dashing, reloading);
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandlePlayerEquipment(int peerId, NetPacketReader reader)
@@ -321,7 +321,7 @@ public class MessageHandler
             
             PlayerSyncManager.Instance.UpdatePlayerEquipment(peerId, weaponId, armorId, helmetId, hotbar);
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleWeaponFire(int peerId, NetPacketReader reader)
@@ -341,7 +341,7 @@ public class MessageHandler
                 new System.Numerics.Vector3(ox, oy, oz),
                 new System.Numerics.Vector3(dx, dy, dz), ammoType);
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleDamage(int peerId, NetPacketReader reader)
@@ -367,7 +367,7 @@ public class MessageHandler
                 CombatSyncManager.Instance.OnAIDamage(targetId, peerId, damage, damageType, hitPoint);
             }
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleItemPickup(int peerId, NetPacketReader reader)
@@ -381,7 +381,7 @@ public class MessageHandler
             
             ItemSyncManager.Instance.OnItemPickup(peerId, containerId, slotIndex, itemTypeId, count);
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleItemDrop(int peerId, NetPacketReader reader)
@@ -396,7 +396,7 @@ public class MessageHandler
             
             ItemSyncManager.Instance.OnItemDrop(peerId, itemTypeId, count, new System.Numerics.Vector3(x, y, z));
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleDoorInteract(int peerId, NetPacketReader reader)
@@ -408,7 +408,7 @@ public class MessageHandler
             
             WorldSyncManager.Instance.OnDoorInteract(doorId, isOpen, peerId);
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void HandleJsonMessage(int peerId, NetPacketReader reader, byte channel)
@@ -462,7 +462,7 @@ public class MessageHandler
                 Console.WriteLine($"[JsonStatus] {player.PlayerName} - InGame: {player.IsInGame}, Scene: {player.SceneId}");
             }
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
     }
     
     private void BroadcastJsonMessage(int senderPeerId, string json, byte channel)

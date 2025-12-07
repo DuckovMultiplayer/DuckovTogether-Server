@@ -81,7 +81,7 @@ public class GameDataExtractor
                         sceneName = levelName;
                     }
                 }
-                catch { }
+                catch { /* Ignore extraction errors */ }
                 
                 Scenes[sceneName] = new SceneInfo
                 {
@@ -116,7 +116,7 @@ public class GameDataExtractor
                     }
                 }
             }
-            catch { }
+            catch { /* Ignore extraction errors */ }
         }
     }
     
@@ -157,7 +157,7 @@ public class GameDataExtractor
                     ClassifyAndStore(str, $"sharedassets{i}");
                 }
             }
-            catch { }
+            catch { /* Ignore extraction errors */ }
         }
     }
     
@@ -209,7 +209,7 @@ public class GameDataExtractor
                 }
             }
         }
-        catch { }
+        catch { /* Ignore extraction errors */ }
     }
     
     private void ClassifyAndStore(string name, string source = "")

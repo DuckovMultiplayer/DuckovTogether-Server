@@ -27,4 +27,17 @@
     </None>
   </ItemGroup>
 
+  <Target Name="CreatePluginsFolder" AfterTargets="Build">
+    <MakeDir Directories="$(OutputPath)Plugins" Condition="!Exists('$(OutputPath)Plugins')" />
+    <MakeDir Directories="$(OutputPath)Config" Condition="!Exists('$(OutputPath)Config')" />
+    <MakeDir Directories="$(OutputPath)Data" Condition="!Exists('$(OutputPath)Data')" />
+    <MakeDir Directories="$(OutputPath)Logs" Condition="!Exists('$(OutputPath)Logs')" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="server_config.json.example">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

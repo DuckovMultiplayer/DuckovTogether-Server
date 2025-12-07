@@ -132,7 +132,7 @@ public static class DuckovGuard
     {
         if (_available)
         {
-            try { dg_shutdown(); } catch { }
+            try { dg_shutdown(); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
         }
         _initialized = false;
         _available = false;
@@ -152,7 +152,7 @@ public static class DuckovGuard
     public static void UnregisterPlayer(uint playerId)
     {
         if (!_available) return;
-        try { dg_unregister_player(playerId); } catch { }
+        try { dg_unregister_player(playerId); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
     }
     
     public static bool ValidatePosition(uint playerId, float x, float y, float z, float deltaTime = 0.016f)
@@ -209,13 +209,13 @@ public static class DuckovGuard
     public static void UpdatePlayerPosition(uint playerId, float x, float y, float z)
     {
         if (!_available) return;
-        try { dg_update_player_position(playerId, x, y, z); } catch { }
+        try { dg_update_player_position(playerId, x, y, z); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
     }
     
     public static void UpdatePlayerHealth(uint playerId, float health)
     {
         if (!_available) return;
-        try { dg_update_player_health(playerId, health); } catch { }
+        try { dg_update_player_health(playerId, health); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
     }
     
     public static uint GetViolationCount(uint playerId)
@@ -233,7 +233,7 @@ public static class DuckovGuard
             if (dg_get_last_violation(playerId, out var report) != 0)
                 return report;
         }
-        catch { }
+        catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
         
         return null;
     }
@@ -241,7 +241,7 @@ public static class DuckovGuard
     public static void ClearViolations(uint playerId)
     {
         if (!_available) return;
-        try { dg_clear_violations(playerId); } catch { }
+        try { dg_clear_violations(playerId); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
     }
     
     public static uint ComputeChecksum(byte[] data)
