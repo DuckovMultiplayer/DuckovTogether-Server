@@ -128,6 +128,59 @@ public class PlayerSyncManager
         state.HotbarItems = hotbarItems;
     }
     
+    public void OnPlayerJoined(int peerId, string playerName, Vector3 position, Vector3 rotation, string customFaceJson = "")
+    {
+        if (!_playerStates.ContainsKey(peerId))
+        {
+            _playerStates[peerId] = new PlayerSyncState
+            {
+                PeerId = peerId,
+                Position = position,
+                Rotation = rotation,
+                CurrentHealth = 100f,
+                MaxHealth = 100f
+            };
+        }
+        
+        var data = new PlayerJoinSync
+        {
+            type = "playerJoin",
+            peerId = peerId,
+            playerName = playerName,
+            position = new Vec3 { x = position.X, y = position.Y, z = position.Z },
+            rotation = new Vec3 { x = rotation.X, y = rotation.Y, z = rotation.Z },
+            customFaceJson = customFaceJson,
+            timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+        };
+        
+        BroadcastJsonExcept(peerId, data);
+        Console.WriteLine($"[PlayerSync] Player joined: {playerName} (ID: {peerId})");
+    }
+    
+    public void SendExistingPlayersToNewPlayer(int newPeerId)
+    {
+        foreach (var state in _playerStates.Values)
+        {
+            if (state.PeerId == newPeerId) continue;
+            
+            var player = _netService?.GetPlayer(state.PeerId);
+            if (player == null) continue;
+            
+            var data = new PlayerJoinSync
+            {
+                type = "playerJoin",
+                peerId = state.PeerId,
+                playerName = player.PlayerName,
+                position = new Vec3 { x = state.Position.X, y = state.Position.Y, z = state.Position.Z },
+                rotation = new Vec3 { x = state.Rotation.X, y = state.Rotation.Y, z = state.Rotation.Z },
+                customFaceJson = "",
+                timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+            };
+            
+            SendJsonToPeer(newPeerId, data);
+        }
+    }
+    
     public void OnPlayerDisconnected(int peerId)
     {
         _playerStates.Remove(peerId);
@@ -265,6 +318,38 @@ public class PlayerSyncManager
             peer.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
     }
+    
+    private void BroadcastJsonExcept(int excludePeerId, object data)
+    {
+        if (_netService?.NetManager == null) return;
+        
+        var json = JsonConvert.SerializeObject(data);
+        _writer.Reset();
+        _writer.Put((byte)9);
+        _writer.Put(json);
+        
+        foreach (var peer in _netService.NetManager.ConnectedPeerList)
+        {
+            if (peer.Id != excludePeerId)
+            {
+                peer.Send(_writer, DeliveryMethod.ReliableOrdered);
+            }
+        }
+    }
+    
+    private void SendJsonToPeer(int peerId, object data)
+    {
+        if (_netService?.NetManager == null) return;
+        
+        var peer = _netService.NetManager.ConnectedPeerList.FirstOrDefault(p => p.Id == peerId);
+        if (peer == null) return;
+        
+        var json = JsonConvert.SerializeObject(data);
+        _writer.Reset();
+        _writer.Put((byte)9);
+        _writer.Put(json);
+        peer.Send(_writer, DeliveryMethod.ReliableOrdered);
+    }
 }
 
 public class PlayerSyncState
@@ -372,5 +457,16 @@ public class PlayerRespawnSync
     public string type { get; set; } = "playerRespawn";
     public int peerId { get; set; }
     public Vec3 position { get; set; } = new();
+    public string timestamp { get; set; } = "";
+}
+
+public class PlayerJoinSync
+{
+    public string type { get; set; } = "playerJoin";
+    public int peerId { get; set; }
+    public string playerName { get; set; } = "";
+    public Vec3 position { get; set; } = new();
+    public Vec3 rotation { get; set; } = new();
+    public string customFaceJson { get; set; } = "";
     public string timestamp { get; set; } = "";
 }
