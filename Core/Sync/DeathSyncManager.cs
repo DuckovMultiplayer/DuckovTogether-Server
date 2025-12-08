@@ -145,42 +145,13 @@ public class DeathSyncManager
     
     private List<LootItemState> GenerateLootForAI(string aiType)
     {
-        var items = new List<LootItemState>();
-        var random = new Random();
-        
-        switch (aiType.ToLower())
+        var lootItems = LootTableConfig.Instance.GenerateLootForAI(aiType);
+        return lootItems.Select((item, index) => new LootItemState
         {
-            case "scav":
-                if (random.Next(100) < 60)
-                    items.Add(new LootItemState { Slot = 0, ItemId = "ammo_9mm", Count = random.Next(5, 20) });
-                if (random.Next(100) < 40)
-                    items.Add(new LootItemState { Slot = 1, ItemId = "med_bandage", Count = 1 });
-                if (random.Next(100) < 30)
-                    items.Add(new LootItemState { Slot = 2, ItemId = "food_bread", Count = 1 });
-                break;
-                
-            case "pmc":
-                if (random.Next(100) < 80)
-                    items.Add(new LootItemState { Slot = 0, ItemId = "ammo_545", Count = random.Next(10, 30) });
-                if (random.Next(100) < 60)
-                    items.Add(new LootItemState { Slot = 1, ItemId = "med_ifak", Count = 1 });
-                if (random.Next(100) < 40)
-                    items.Add(new LootItemState { Slot = 2, ItemId = "gear_vest", Count = 1 });
-                break;
-                
-            case "boss":
-                items.Add(new LootItemState { Slot = 0, ItemId = "ammo_762", Count = random.Next(20, 60) });
-                items.Add(new LootItemState { Slot = 1, ItemId = "med_salewa", Count = 1 });
-                items.Add(new LootItemState { Slot = 2, ItemId = "key_rare", Count = 1 });
-                break;
-                
-            default:
-                if (random.Next(100) < 50)
-                    items.Add(new LootItemState { Slot = 0, ItemId = "ammo_9mm", Count = random.Next(5, 15) });
-                break;
-        }
-        
-        return items;
+            Slot = index,
+            ItemId = item.ItemId,
+            Count = item.Count
+        }).ToList();
     }
     
     public void OnPlayerRespawn(int peerId, Vector3 spawnPosition)
