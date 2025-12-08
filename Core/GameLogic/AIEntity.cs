@@ -83,6 +83,7 @@ public class AIEntity
         {
             State = AIState.Dead;
             LastStateChange = DateTime.Now;
+            OnDeath(fromPlayerId);
         }
         else if (State == AIState.Idle || State == AIState.Patrol)
         {
@@ -90,6 +91,11 @@ public class AIEntity
             State = AIState.Chase;
             LastStateChange = DateTime.Now;
         }
+    }
+    
+    private void OnDeath(int killerId)
+    {
+        Sync.DeathSyncManager.Instance.OnAIDeath(EntityId, killerId, Position, TypeName);
     }
     
     public void MoveTo(Vector3 target, float deltaTime)
