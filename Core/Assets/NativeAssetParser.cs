@@ -11,6 +11,7 @@ public class NativeAssetParser
     public Dictionary<int, ParsedItemData> Items { get; } = new();
     public Dictionary<string, ParsedSceneData> Scenes { get; } = new();
     public Dictionary<string, ParsedAIData> AITypes { get; } = new();
+    public Dictionary<string, ParsedBuildingData> Buildings { get; } = new();
     
     private readonly HashSet<string> _itemKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -21,6 +22,12 @@ public class NativeAssetParser
     private readonly HashSet<string> _aiKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
         "scav", "pmc", "boss", "guard", "enemy", "character", "npc", "ai"
+    };
+    
+    private readonly HashSet<string> _buildingKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "building", "construct", "buildslot", "workbench", "upgrade", "placeable",
+        "base", "fortification", "structure", "facility", "station"
     };
     
     public bool Parse(string gamePath)
@@ -45,7 +52,7 @@ public class NativeAssetParser
             }
         }
         
-        Console.WriteLine($"[NativeParser] Parsed: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types");
+        Console.WriteLine($"[NativeParser] Parsed: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types, {Buildings.Count} buildings");
         return Items.Count > 0 || Scenes.Count > 0;
     }
     
@@ -90,9 +97,22 @@ public class NativeAssetParser
                         aiCount++;
                     }
                 }
+                else if (IsBuildingName(str))
+                {
+                    if (!Buildings.ContainsKey(str))
+                    {
+                        Buildings[str] = new ParsedBuildingData
+                        {
+                            BuildingId = str,
+                            Name = str,
+                            DisplayName = CleanDisplayName(str),
+                            Category = DetectBuildingCategory(str)
+                        };
+                    }
+                }
             }
             
-            Console.WriteLine($"[NativeParser] resources.assets: {itemCount} items, {aiCount} AI types");
+            Console.WriteLine($"[NativeParser] resources.assets: {itemCount} items, {aiCount} AI types, {Buildings.Count} buildings");
         }
         catch (Exception ex)
         {
@@ -108,6 +128,7 @@ public class NativeAssetParser
             var strings = ExtractStrings(bytes, 4, 80);
             
             int itemCount = 0;
+            int buildingCount = 0;
             foreach (var str in strings)
             {
                 if (IsItemName(str))
@@ -126,11 +147,26 @@ public class NativeAssetParser
                         itemCount++;
                     }
                 }
+                else if (IsBuildingName(str))
+                {
+                    if (!Buildings.ContainsKey(str))
+                    {
+                        Buildings[str] = new ParsedBuildingData
+                        {
+                            BuildingId = str,
+                            Name = str,
+                            DisplayName = CleanDisplayName(str),
+                            Category = DetectBuildingCategory(str),
+                            SourceFile = $"sharedassets{index}"
+                        };
+                        buildingCount++;
+                    }
+                }
             }
             
-            if (itemCount > 0)
+            if (itemCount > 0 || buildingCount > 0)
             {
-                Console.WriteLine($"[NativeParser] sharedassets{index}: {itemCount} items");
+                Console.WriteLine($"[NativeParser] sharedassets{index}: {itemCount} items, {buildingCount} buildings");
             }
         }
         catch { /* Ignore native parse errors */ }
@@ -297,6 +333,42 @@ public class NativeAssetParser
         return "Default";
     }
     
+    private bool IsBuildingName(string str)
+    {
+        if (str.Length < 4 || str.Length > 60) return false;
+        if (IsExcludedName(str)) return false;
+        
+        var lower = str.ToLower();
+        
+        foreach (var keyword in _buildingKeywords)
+        {
+            if (lower.Contains(keyword))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private string DetectBuildingCategory(string name)
+    {
+        var lower = name.ToLower();
+        
+        if (lower.Contains("workbench") || lower.Contains("craft")) return "Crafting";
+        if (lower.Contains("storage") || lower.Contains("stash")) return "Storage";
+        if (lower.Contains("medical") || lower.Contains("heal")) return "Medical";
+        if (lower.Contains("weapon") || lower.Contains("gun")) return "WeaponStation";
+        if (lower.Contains("food") || lower.Contains("kitchen") || lower.Contains("dining")) return "Food";
+        if (lower.Contains("quest") || lower.Contains("billboard")) return "Quest";
+        if (lower.Contains("merchant") || lower.Contains("shop") || lower.Contains("trader")) return "Merchant";
+        if (lower.Contains("gym") || lower.Contains("training")) return "Training";
+        if (lower.Contains("generator") || lower.Contains("power")) return "Power";
+        if (lower.Contains("wall") || lower.Contains("fence") || lower.Contains("barrier")) return "Defense";
+        
+        return "Generic";
+    }
+    
     private int GenerateStableId(string name)
     {
         unchecked
@@ -319,6 +391,9 @@ public class NativeAssetParser
         
         var aiJson = JsonConvert.SerializeObject(AITypes.Values.ToList(), Formatting.Indented);
         File.WriteAllText(Path.Combine(outputPath, "parsed_ai.json"), aiJson);
+        
+        var buildingsJson = JsonConvert.SerializeObject(Buildings.Values.ToList(), Formatting.Indented);
+        File.WriteAllText(Path.Combine(outputPath, "parsed_buildings.json"), buildingsJson);
         
         Console.WriteLine($"[NativeParser] Saved to: {outputPath}");
     }
@@ -343,4 +418,15 @@ public class ParsedAIData
 {
     public string TypeName { get; set; } = "";
     public string Category { get; set; } = "Default";
+}
+
+public class ParsedBuildingData
+{
+    public string BuildingId { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string Category { get; set; } = "Generic";
+    public int MaxLevel { get; set; } = 3;
+    public string[] RequiredItems { get; set; } = Array.Empty<string>();
+    public string SourceFile { get; set; } = "";
 }

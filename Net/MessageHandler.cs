@@ -44,6 +44,10 @@ public enum MessageType : byte
     DoorInteract = 50,
     SwitchInteract = 51,
     ExtractStart = 52,
+    BuildingPlace = 60,
+    BuildingDestroy = 61,
+    BuildingUpgrade = 62,
+    BuildingSyncRequest = 63,
     SetId = 100,
     Kick = 101
 }
@@ -424,7 +428,8 @@ public class MessageHandler
             var requestTypes = new[] { 
                 "sceneVoteRequest", "sceneVoteReady", "updateClientStatus",
                 "lootRequest", "itemDropRequest", "itemPickupRequest",
-                "damageReport", "ai_health_report", "clientStatus"
+                "damageReport", "ai_health_report", "clientStatus",
+                "buildingPlaced", "buildingDestroyed", "buildingUpgraded", "buildingSyncRequest"
             };
             
             if (requestTypes.Contains(baseMsg.type))
@@ -434,6 +439,22 @@ public class MessageHandler
                 if (baseMsg.type == "clientStatus" || baseMsg.type == "updateClientStatus")
                 {
                     HandleJsonClientStatus(peerId, json);
+                }
+                else if (baseMsg.type == "buildingPlaced")
+                {
+                    HandleBuildingPlaced(peerId, json);
+                }
+                else if (baseMsg.type == "buildingDestroyed")
+                {
+                    HandleBuildingDestroyed(peerId, json);
+                }
+                else if (baseMsg.type == "buildingUpgraded")
+                {
+                    HandleBuildingUpgraded(peerId, json);
+                }
+                else if (baseMsg.type == "buildingSyncRequest")
+                {
+                    HandleBuildingSyncRequest(peerId);
                 }
             }
             else
@@ -570,6 +591,75 @@ public class MessageHandler
                 peer.Send(_writer, channel, deliveryMethod);
             }
         }
+    }
+    
+    private void HandleBuildingPlaced(int peerId, string json)
+    {
+        try
+        {
+            dynamic data = JsonConvert.DeserializeObject(json)!;
+            var player = _netService.GetPlayer(peerId);
+            var playerId = player?.EndPoint ?? $"player_{peerId}";
+            
+            BuildingSyncManager.Instance.OnBuildingPlaced(
+                playerId,
+                (string)data.buildingId,
+                (string)data.buildingType,
+                player?.SceneId ?? "",
+                (float)data.posX,
+                (float)data.posY,
+                (float)data.posZ,
+                (float)data.rotX,
+                (float)data.rotY,
+                (float)data.rotZ
+            );
+        }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingPlaced error: {ex.Message}"); }
+    }
+    
+    private void HandleBuildingDestroyed(int peerId, string json)
+    {
+        try
+        {
+            dynamic data = JsonConvert.DeserializeObject(json)!;
+            var player = _netService.GetPlayer(peerId);
+            var playerId = player?.EndPoint ?? $"player_{peerId}";
+            
+            BuildingSyncManager.Instance.OnBuildingDestroyed(playerId, (string)data.buildingId);
+        }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingDestroyed error: {ex.Message}"); }
+    }
+    
+    private void HandleBuildingUpgraded(int peerId, string json)
+    {
+        try
+        {
+            dynamic data = JsonConvert.DeserializeObject(json)!;
+            var player = _netService.GetPlayer(peerId);
+            var playerId = player?.EndPoint ?? $"player_{peerId}";
+            
+            BuildingSyncManager.Instance.OnBuildingUpgraded(playerId, (string)data.buildingId, (int)data.newLevel);
+        }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingUpgraded error: {ex.Message}"); }
+    }
+    
+    private void HandleBuildingSyncRequest(int peerId)
+    {
+        try
+        {
+            var peer = GetPeerById(peerId);
+            if (peer == null) return;
+            
+            var syncJson = BuildingSyncManager.Instance.GetAllBuildings();
+            
+            _writer.Reset();
+            _writer.Put((byte)MessageType.JsonMessage);
+            _writer.Put(syncJson);
+            _netService.SendToPeer(peer, _writer);
+            
+            Console.WriteLine($"[MessageHandler] Sent building sync to peer {peerId}");
+        }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingSyncRequest error: {ex.Message}"); }
     }
 }
 

@@ -151,6 +151,7 @@ public class WorldState
     public Dictionary<string, LootContainerState> LootContainers { get; set; } = new();
     public Dictionary<string, AIState> AIEntities { get; set; } = new();
     public List<DroppedItemState> DroppedItems { get; set; } = new();
+    public Dictionary<string, BuildingState> Buildings { get; set; } = new();
 }
 
 public class LootContainerState
@@ -192,6 +193,26 @@ public class ItemState
     public string ItemId { get; set; } = "";
     public string ItemType { get; set; } = "";
     public int Count { get; set; } = 1;
+    public Dictionary<string, object> Properties { get; set; } = new();
+}
+
+public class BuildingState
+{
+    public string BuildingId { get; set; } = "";
+    public string BuildingType { get; set; } = "";
+    public string OwnerId { get; set; } = "";
+    public string SceneId { get; set; } = "";
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
+    public float RotX { get; set; }
+    public float RotY { get; set; }
+    public float RotZ { get; set; }
+    public int Level { get; set; } = 1;
+    public float Health { get; set; } = 100f;
+    public bool IsDestroyed { get; set; }
+    public DateTime PlacedAt { get; set; }
+    public DateTime? DestroyedAt { get; set; }
     public Dictionary<string, object> Properties { get; set; } = new();
 }
 

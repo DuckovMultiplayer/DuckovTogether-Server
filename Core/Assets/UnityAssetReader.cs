@@ -1028,6 +1028,10 @@ public class UnityAssetReader
         var aiTypesJson = Newtonsoft.Json.JsonConvert.SerializeObject(AITypes.Values.ToList(), Newtonsoft.Json.Formatting.Indented);
         File.WriteAllText(Path.Combine(outputPath, "ai_types.json"), aiTypesJson);
         
+        var parsedDir = Path.Combine(outputPath, "Parsed");
+        Directory.CreateDirectory(parsedDir);
+        NativeAssetParser.Instance.SaveToJson(parsedDir);
+        
         Console.WriteLine($"[AssetReader] Saved extracted data to: {outputPath}");
     }
 }

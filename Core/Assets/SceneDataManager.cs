@@ -15,6 +15,8 @@ public class SceneDataManager
     private Dictionary<int, ParsedItemData> _items = new();
     private List<AIData> _aiTypes = new();
     private List<QuestData> _quests = new();
+    private Dictionary<string, BuildingDefinition> _buildings = new();
+    private Dictionary<string, ParsedBuildingData> _parsedBuildings = new();
     
     public IReadOnlyDictionary<string, ParsedSceneData> Scenes => _scenes;
     public IReadOnlyDictionary<string, ExtractPointData> ExtractPoints => _extractPoints;
@@ -22,6 +24,8 @@ public class SceneDataManager
     public IReadOnlyDictionary<int, WeaponData> Weapons => _weapons;
     public IReadOnlyDictionary<int, ParsedItemData> Items => _items;
     public IReadOnlyList<AIData> AITypes => _aiTypes;
+    public IReadOnlyDictionary<string, BuildingDefinition> Buildings => _buildings;
+    public IReadOnlyDictionary<string, ParsedBuildingData> ParsedBuildings => _parsedBuildings;
     
     public void LoadFromDirectory(string dataPath)
     {
@@ -36,8 +40,10 @@ public class SceneDataManager
         LoadQuests(Path.Combine(gameDataPath, "quests.json"));
         LoadItems(Path.Combine(parsedPath, "parsed_items.json"));
         LoadAI(Path.Combine(parsedPath, "parsed_ai.json"));
+        LoadBuildings(Path.Combine(dataPath, "buildings.json"));
+        LoadParsedBuildings(Path.Combine(parsedPath, "parsed_buildings.json"));
         
-        Console.WriteLine($"[SceneData] Loaded: {_scenes.Count} scenes, {_extractPoints.Count} extracts, {_doors.Count} doors, {_weapons.Count} weapons, {_items.Count} items, {_aiTypes.Count} AI types");
+        Console.WriteLine($"[SceneData] Loaded: {_scenes.Count} scenes, {_extractPoints.Count} extracts, {_doors.Count} doors, {_weapons.Count} weapons, {_items.Count} items, {_aiTypes.Count} AI types, {_buildings.Count} buildings");
     }
     
     public ParsedSceneData? GetScene(string sceneId) => _scenes.GetValueOrDefault(sceneId);
@@ -110,6 +116,26 @@ public class SceneDataManager
         if (!File.Exists(path)) return;
         _aiTypes = JsonConvert.DeserializeObject<List<AIData>>(File.ReadAllText(path)) ?? new();
     }
+    
+    private void LoadBuildings(string path)
+    {
+        if (!File.Exists(path)) return;
+        var list = JsonConvert.DeserializeObject<List<BuildingDefinition>>(File.ReadAllText(path));
+        if (list == null) return;
+        foreach (var b in list) _buildings[b.BuildingId] = b;
+    }
+    
+    private void LoadParsedBuildings(string path)
+    {
+        if (!File.Exists(path)) return;
+        var list = JsonConvert.DeserializeObject<List<ParsedBuildingData>>(File.ReadAllText(path));
+        if (list == null) return;
+        foreach (var b in list) _parsedBuildings[b.BuildingId] = b;
+    }
+    
+    public BuildingDefinition? GetBuilding(string buildingId) => _buildings.GetValueOrDefault(buildingId);
+    public ParsedBuildingData? GetParsedBuilding(string buildingId) => _parsedBuildings.GetValueOrDefault(buildingId);
+    public bool IsValidBuilding(string buildingId) => _buildings.ContainsKey(buildingId) || _parsedBuildings.ContainsKey(buildingId);
 }
 
 public class ExtractPointData

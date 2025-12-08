@@ -96,6 +96,13 @@ class Program
                 {
                     SceneDataManager.Instance.LoadFromDirectory(dataPath);
                     Core.Sync.GameDataValidator.Instance.Initialize();
+                    
+                    var itemsJsonPath = Path.Combine(dataPath, "items.json");
+                    if (File.Exists(itemsJsonPath))
+                    {
+                        BuildingDataExtractor.Instance.ExtractFromItems(itemsJsonPath);
+                        BuildingDataExtractor.Instance.SaveToJson(Path.Combine(dataPath, "buildings.json"));
+                    }
                 }
             }
             else
@@ -252,6 +259,16 @@ class Program
                     Console.WriteLine($"[Data] Weapons: {SceneDataManager.Instance.Weapons.Count}");
                     Console.WriteLine($"[Data] Items: {SceneDataManager.Instance.Items.Count}");
                     Console.WriteLine($"[Data] AI Types: {SceneDataManager.Instance.AITypes.Count}");
+                    Console.WriteLine($"[Data] Buildings: {BuildingDataExtractor.Instance.Buildings.Count}");
+                    break;
+                    
+                case "buildings":
+                    var buildings = BuildingDataExtractor.Instance.Buildings;
+                    Console.WriteLine($"[Buildings] Total: {buildings.Count}");
+                    foreach (var b in buildings.Values)
+                    {
+                        Console.WriteLine($"  - {b.BuildingId}: {b.DisplayName} [{b.Category}]");
+                    }
                     break;
                     
                 case "quit":

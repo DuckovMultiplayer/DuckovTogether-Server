@@ -32,6 +32,7 @@ public class GameTypeAnalyzer
     public Dictionary<string, GameTypeInfo> AITypes { get; } = new();
     public Dictionary<string, GameTypeInfo> LootTypes { get; } = new();
     public Dictionary<string, GameTypeInfo> SceneTypes { get; } = new();
+    public Dictionary<string, GameTypeInfo> BuildingTypes { get; } = new();
     
     private readonly HashSet<string> _scriptableObjectBases = new()
     {
@@ -78,6 +79,7 @@ public class GameTypeAnalyzer
         Console.WriteLine($"[TypeAnalyzer] Item types: {ItemTypes.Count}");
         Console.WriteLine($"[TypeAnalyzer] AI types: {AITypes.Count}");
         Console.WriteLine($"[TypeAnalyzer] Loot types: {LootTypes.Count}");
+        Console.WriteLine($"[TypeAnalyzer] Building types: {BuildingTypes.Count}");
         
         return true;
     }
@@ -221,6 +223,7 @@ public class GameTypeAnalyzer
         var aiPatterns = new[] { "AI", "Enemy", "NPC", "Character", "Bot", "Scav", "PMC" };
         var lootPatterns = new[] { "Loot", "Drop", "Spawn", "Container", "Chest", "Box" };
         var scenePatterns = new[] { "Scene", "Level", "Map", "Zone", "Area" };
+        var buildingPatterns = new[] { "Building", "Construct", "BuildSlot", "Workbench", "Upgrade", "Placeable", "Station", "Facility" };
         
         foreach (var kvp in Types)
         {
@@ -238,6 +241,8 @@ public class GameTypeAnalyzer
                 LootTypes[kvp.Key] = type;
             else if (MatchesPatterns(name, scenePatterns))
                 SceneTypes[kvp.Key] = type;
+            else if (MatchesPatterns(name, buildingPatterns))
+                BuildingTypes[kvp.Key] = type;
         }
     }
     

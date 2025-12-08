@@ -207,6 +207,74 @@ public class WorldStateManager
         }
     }
     
+    public void PlaceBuilding(string playerId, string buildingId, string buildingType, 
+        string sceneId, float posX, float posY, float posZ, float rotX, float rotY, float rotZ)
+    {
+        lock (_lock)
+        {
+            var world = ServerSaveManager.Instance.CurrentWorld;
+            
+            world.Buildings[buildingId] = new BuildingState
+            {
+                BuildingId = buildingId,
+                BuildingType = buildingType,
+                OwnerId = playerId,
+                SceneId = sceneId,
+                PosX = posX,
+                PosY = posY,
+                PosZ = posZ,
+                RotX = rotX,
+                RotY = rotY,
+                RotZ = rotZ,
+                Level = 1,
+                Health = 100f,
+                IsDestroyed = false,
+                PlacedAt = DateTime.Now
+            };
+            
+            Console.WriteLine($"[WorldState] Building placed: {buildingType} by {playerId}");
+        }
+    }
+    
+    public void DestroyBuilding(string buildingId, string destroyedBy)
+    {
+        lock (_lock)
+        {
+            var world = ServerSaveManager.Instance.CurrentWorld;
+            
+            if (world.Buildings.TryGetValue(buildingId, out var building))
+            {
+                building.IsDestroyed = true;
+                building.DestroyedAt = DateTime.Now;
+                Console.WriteLine($"[WorldState] Building destroyed: {buildingId} by {destroyedBy}");
+            }
+        }
+    }
+    
+    public void UpgradeBuilding(string buildingId, int newLevel)
+    {
+        lock (_lock)
+        {
+            var world = ServerSaveManager.Instance.CurrentWorld;
+            
+            if (world.Buildings.TryGetValue(buildingId, out var building))
+            {
+                building.Level = newLevel;
+                Console.WriteLine($"[WorldState] Building upgraded: {buildingId} to level {newLevel}");
+            }
+        }
+    }
+    
+    public IReadOnlyDictionary<string, BuildingState> GetBuildingsForScene(string sceneId)
+    {
+        lock (_lock)
+        {
+            return ServerSaveManager.Instance.CurrentWorld.Buildings
+                .Where(b => b.Value.SceneId == sceneId && !b.Value.IsDestroyed)
+                .ToDictionary(b => b.Key, b => b.Value);
+        }
+    }
+    
     public void Shutdown()
     {
         Console.WriteLine("[WorldState] Shutting down...");
