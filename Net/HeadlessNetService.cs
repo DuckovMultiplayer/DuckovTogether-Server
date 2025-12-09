@@ -291,6 +291,8 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(_config.ServerName);
             _writer.Put(PlayerCount);
             _writer.Put(_config.MaxPlayers);
+            _writer.Put(Plugins.PluginManager.Instance?.LoadedPluginCount ?? 0);
+            _writer.Put(_config.ServerIcon ?? "default");
             _netManager?.SendUnconnectedMessage(_writer, remoteEndPoint);
             Console.WriteLine($"[Server] Discovery request from {remoteEndPoint}");
         }
