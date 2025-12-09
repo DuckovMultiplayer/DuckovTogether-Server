@@ -262,6 +262,12 @@ public class HeadlessNetService : INetEventListener
         }
     }
     
+    public void SendToPeer(int peerId, NetDataWriter writer, DeliveryMethod method = DeliveryMethod.ReliableOrdered)
+    {
+        var peer = GetPeer(peerId);
+        peer?.Send(writer, method);
+    }
+    
     public void DisconnectPeer(int peerId, string reason)
     {
         var peer = GetPeer(peerId);
@@ -319,7 +325,7 @@ public class HeadlessNetService : INetEventListener
     private byte[] _cachedLogoData;
     private bool _logoLoaded;
     
-    private byte[] GetServerLogo()
+    public byte[] GetServerLogo()
     {
         if (_logoLoaded) return _cachedLogoData;
         _logoLoaded = true;
@@ -364,7 +370,8 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(_config.ServerIcon ?? "default");
             
             var logoData = GetServerLogo();
-            if (logoData != null && logoData.Length > 0)
+            var maxLogoSize = 50000;
+            if (logoData != null && logoData.Length > 0 && logoData.Length <= maxLogoSize)
             {
                 _writer.Put(true);
                 _writer.Put(logoData.Length);
@@ -375,8 +382,9 @@ public class HeadlessNetService : INetEventListener
                 _writer.Put(false);
             }
             
-            _server?.SendUnconnected(remoteEndPoint, _writer.CopyData());
-            Console.WriteLine($"[Server] Discovery request from {remoteEndPoint}");
+            var responseData = _writer.CopyData();
+            _server?.SendUnconnected(remoteEndPoint, responseData);
+            Console.WriteLine($"[Server] Discovery response to {remoteEndPoint}, {responseData.Length} bytes");
         }
     }
     

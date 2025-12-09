@@ -48,7 +48,9 @@ public enum MessageType : byte
     BuildingUpgrade = 62,
     BuildingSyncRequest = 63,
     SetId = 100,
-    Kick = 101
+    Kick = 101,
+    RequestLogo = 110,
+    ServerLogo = 111
 }
 
 public class SetIdData
@@ -284,6 +286,9 @@ public class MessageHandler
                 break;
             case MessageType.DoorInteract:
                 HandleDoorInteract(peerId, reader);
+                break;
+            case MessageType.RequestLogo:
+                HandleRequestLogo(peerId);
                 break;
             default:
                 BroadcastRawMessage(peerId, reader, channel);
@@ -659,6 +664,31 @@ public class MessageHandler
             Console.WriteLine($"[MessageHandler] Sent building sync to peer {peerId}");
         }
         catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingSyncRequest error: {ex.Message}"); }
+    }
+    
+    private void HandleRequestLogo(int peerId)
+    {
+        try
+        {
+            var logoData = _netService.GetServerLogo();
+            if (logoData == null || logoData.Length == 0)
+            {
+                _writer.Reset();
+                _writer.Put((byte)MessageType.ServerLogo);
+                _writer.Put(false);
+                _netService.SendToPeer(peerId, _writer);
+                return;
+            }
+            
+            _writer.Reset();
+            _writer.Put((byte)MessageType.ServerLogo);
+            _writer.Put(true);
+            _writer.Put(logoData.Length);
+            _writer.Put(logoData);
+            _netService.SendToPeer(peerId, _writer);
+            Console.WriteLine($"[MessageHandler] Sent logo ({logoData.Length} bytes) to peer {peerId}");
+        }
+        catch (Exception ex) { Console.WriteLine($"[MessageHandler] RequestLogo error: {ex.Message}"); }
     }
 }
 
