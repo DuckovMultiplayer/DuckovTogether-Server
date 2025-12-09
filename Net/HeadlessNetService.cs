@@ -359,6 +359,12 @@ public class HeadlessNetService : INetEventListener
         var reader = new NetDataReader(data);
         if (!reader.TryGetString(out var msg)) return;
         
+        if (msg == "LOGO_REQUEST")
+        {
+            SendLogoChunks(remoteEndPoint);
+            return;
+        }
+        
         if (msg == "DISCOVER_REQUEST")
         {
             _writer.Reset();
@@ -380,16 +386,51 @@ public class HeadlessNetService : INetEventListener
             else
             {
                 _writer.Put(false);
-                if (logoData != null && logoData.Length > maxLogoSize)
-                {
-                    Console.WriteLine($"[Server] Logo too large for discovery ({logoData.Length} > {maxLogoSize}). Compress to <50KB or request after connection.");
-                }
+                _writer.Put(logoData?.Length ?? 0);
             }
             
             var responseData = _writer.CopyData();
             _server?.SendUnconnected(remoteEndPoint, responseData);
             Console.WriteLine($"[Server] Discovery response to {remoteEndPoint}, {responseData.Length} bytes");
         }
+    }
+    
+    private const int CHUNK_SIZE = 40000;
+    
+    private void SendLogoChunks(IPEndPoint endpoint)
+    {
+        var logoData = GetServerLogo();
+        if (logoData == null || logoData.Length == 0)
+        {
+            var writer = new NetDataWriter();
+            writer.Put("LOGO_RESPONSE");
+            writer.Put(0);
+            writer.Put(0);
+            writer.Put(0);
+            _server?.SendUnconnected(endpoint, writer.CopyData());
+            return;
+        }
+        
+        var totalChunks = (logoData.Length + CHUNK_SIZE - 1) / CHUNK_SIZE;
+        
+        for (int i = 0; i < totalChunks; i++)
+        {
+            var offset = i * CHUNK_SIZE;
+            var length = Math.Min(CHUNK_SIZE, logoData.Length - offset);
+            
+            var writer = new NetDataWriter();
+            writer.Put("LOGO_RESPONSE");
+            writer.Put(logoData.Length);
+            writer.Put(i);
+            writer.Put(totalChunks);
+            writer.Put(length);
+            writer.Put(logoData, offset, length);
+            
+            _server?.SendUnconnected(endpoint, writer.CopyData());
+            System.Threading.Thread.Sleep(5);
+        }
+        
+        Console.WriteLine($"[Server] Sent logo in {totalChunks} chunks to {endpoint}");
     }
     
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
