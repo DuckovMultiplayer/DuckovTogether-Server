@@ -9,7 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Numerics;
-using LiteNetLib;
+using DuckovNet;
 
 namespace DuckovTogether.Core;
 

@@ -9,8 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Text;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 using Newtonsoft.Json;
 using DuckovTogether.Core.Sync;
 using DuckovTogether.Core.GameLogic;
@@ -498,7 +497,7 @@ public class MessageHandler
         {
             if (peer.Id != senderPeerId)
             {
-                peer.Send(_writer, channel, DeliveryMethod.ReliableOrdered);
+                peer.Send(_writer, DeliveryMethod.ReliableOrdered);
             }
         }
     }
@@ -588,7 +587,7 @@ public class MessageHandler
         {
             if (peer.Id != senderPeerId)
             {
-                peer.Send(_writer, channel, deliveryMethod);
+                peer.Send(_writer, deliveryMethod);
             }
         }
     }

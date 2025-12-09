@@ -1,6 +1,6 @@
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Core.World;
-using LiteNetLib;
+using DuckovNet;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;

@@ -12,8 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.Assets;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;

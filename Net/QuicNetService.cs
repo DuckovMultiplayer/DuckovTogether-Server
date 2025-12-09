@@ -34,9 +34,9 @@ public class QuicNetService
         }
         
         _transport = new QuicTransport();
-        _transport.OnPeerConnected += OnPeerConnectedHandler;
-        _transport.OnPeerDisconnected += OnPeerDisconnectedHandler;
-        _transport.OnDataReceived += OnDataReceivedHandler;
+        _transport.OnPeerConnectedQuic += OnPeerConnectedHandler;
+        _transport.OnPeerDisconnectedQuic += OnPeerDisconnectedHandler;
+        _transport.OnDataReceivedQuic += OnDataReceivedHandler;
         
         var started = await _transport.StartServerAsync(_config.Port);
         if (started)

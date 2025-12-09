@@ -15,10 +15,6 @@
     <PackageReference Include="AssetsTools.NET" Version="3.0.0-preview8" />
     <PackageReference Include="Mono.Cecil" Version="0.11.5" />
     <PackageReference Include="UnityPy" Version="1.10.18" Condition="false" />
-    <Reference Include="LiteNetLib">
-      <HintPath>..\Shared\LiteNetLib.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   
@@ -26,13 +22,6 @@
     <Compile Include="..\Shared\DuckovNet\*.cs" Link="Net\DuckovNet\%(Filename)%(Extension)" />
   </ItemGroup>
   
-  <ItemGroup>
-    <None Include="..\Shared\LiteNetLib.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>LiteNetLib.dll</Link>
-    </None>
-  </ItemGroup>
-
   <Target Name="CreatePluginsFolder" AfterTargets="Build">
     <MakeDir Directories="$(OutputPath)Plugins" Condition="!Exists('$(OutputPath)Plugins')" />
     <MakeDir Directories="$(OutputPath)Config" Condition="!Exists('$(OutputPath)Config')" />

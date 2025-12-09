@@ -9,8 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Concurrent;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 
 namespace DuckovTogether.Net;
 

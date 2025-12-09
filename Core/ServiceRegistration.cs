@@ -11,6 +11,7 @@
 using DuckovTogether.Core.Sync;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
+using DuckovNet;
 
 namespace DuckovTogether.Core;
 
@@ -56,14 +57,22 @@ public class NetServiceAdapter : INetService
     public void Stop() => _netService.Stop();
     public void Poll() => _netService.Poll();
     
-    public void SendToAll(byte[] data, LiteNetLib.DeliveryMethod method)
+    public void SendToAll(byte[] data, DeliveryMethod method)
     {
-        _netService.SendToAll(data, method);
+        var writer = new NetDataWriter();
+        writer.Put(data);
+        _netService.SendToAll(writer, method);
     }
     
-    public void SendToPeer(int peerId, byte[] data, LiteNetLib.DeliveryMethod method)
+    public void SendToPeer(int peerId, byte[] data, DeliveryMethod method)
     {
-        _netService.SendToPeer(peerId, data, method);
+        var peer = _netService.GetPeer(peerId);
+        if (peer != null)
+        {
+            var writer = new NetDataWriter();
+            writer.Put(data);
+            _netService.SendToPeer(peer, writer, method);
+        }
     }
     
     public void DisconnectPeer(int peerId, string reason)
@@ -71,7 +80,7 @@ public class NetServiceAdapter : INetService
         _netService.DisconnectPeer(peerId, reason);
     }
     
-    public LiteNetLib.NetPeer? GetPeer(int peerId) => _netService.GetPeer(peerId);
+    public NetPeer? GetPeer(int peerId) => _netService.GetPeer(peerId);
     
     public IEnumerable<int> GetAllPeerIds() => _netService.GetAllPeerIds();
 }

@@ -11,6 +11,7 @@
 using System.Reflection;
 using DuckovTogether.Net;
 using DuckovTogether.Core;
+using DuckovNet;
 
 namespace DuckovTogether.Plugins;
 
@@ -262,7 +263,7 @@ public class PluginManager : IPluginHost
     {
         if (_netService == null) return;
         
-        var writer = new LiteNetLib.Utils.NetDataWriter();
+        var writer = new NetDataWriter();
         writer.Put(messageType);
         writer.Put(data);
         _netService.SendToAll(writer);
@@ -272,7 +273,7 @@ public class PluginManager : IPluginHost
     {
         if (_netService?.NetManager == null) return;
         
-        var writer = new LiteNetLib.Utils.NetDataWriter();
+        var writer = new NetDataWriter();
         writer.Put(messageType);
         writer.Put(data);
         

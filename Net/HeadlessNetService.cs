@@ -10,8 +10,7 @@
 
 using System.Net;
 using System.Net.Sockets;
-using LiteNetLib;
-using LiteNetLib.Utils;
+using DuckovNet;
 using DuckovTogether.Core;
 
 namespace DuckovTogether.Net;
@@ -19,14 +18,16 @@ namespace DuckovTogether.Net;
 public class HeadlessNetService : INetEventListener
 {
     private readonly ServerConfig _config;
+    private DualProtocolServer? _server;
     private NetManager? _netManager;
     private NetDataWriter _writer = new();
     private readonly Dictionary<int, PlayerState> _players = new();
     private readonly object _lock = new();
     
-    public bool IsRunning => _netManager?.IsRunning ?? false;
+    public bool IsRunning => _server?.IsRunning ?? false;
     public int PlayerCount => _players.Count;
     public NetManager? NetManager => _netManager;
+    public DualProtocolServer? Server => _server;
     
     public event Action<int, PlayerState>? OnPlayerConnected;
     public event Action<int, DisconnectReason>? OnPlayerDisconnected;
@@ -39,18 +40,26 @@ public class HeadlessNetService : INetEventListener
     
     public bool Start()
     {
-        _netManager = new NetManager(this)
-        {
-            BroadcastReceiveEnabled = _config.EnableBroadcast,
-            UnconnectedMessagesEnabled = true,
-            ChannelsCount = 4,
-            UseNativeSockets = true
-        };
+        _server = new DualProtocolServer();
+        _server.OnPeerConnected += OnDualPeerConnected;
+        _server.OnPeerDisconnected += OnDualPeerDisconnected;
+        _server.OnDataReceived += OnDualDataReceived;
         
-        var started = _netManager.Start(_config.Port);
+        var kcpPort = _config.Port;
+        var quicPort = _config.Port + 1;
+        
+        bool started;
+        if (QuicTransport.IsSupported && !string.IsNullOrEmpty(_config.CertPath))
+        {
+            started = _server.Start(kcpPort, quicPort, _config.CertPath, _config.KeyPath);
+        }
+        else
+        {
+            started = _server.StartKcpOnly(kcpPort);
+        }
+        
         if (started)
         {
-            Console.WriteLine($"[Server] Started on port {_config.Port}");
             Console.WriteLine($"[Server] Max players: {_config.MaxPlayers}");
             Console.WriteLine("[Server] Press Ctrl+C to stop");
             Console.WriteLine("[Server] Type 'help' for commands");
@@ -61,7 +70,30 @@ public class HeadlessNetService : INetEventListener
         {
             Console.WriteLine($"[Server] Failed to start on port {_config.Port}");
         }
+        
+        _netManager = new NetManager(this);
+        
         return started;
+    }
+    
+    private void OnDualPeerConnected(DualPeer dualPeer)
+    {
+        var peer = new NetPeer { Id = dualPeer.Id, EndPoint = dualPeer.EndPoint };
+        OnPeerConnected(peer);
+    }
+    
+    private void OnDualPeerDisconnected(DualPeer dualPeer, string reason)
+    {
+        var peer = new NetPeer { Id = dualPeer.Id };
+        OnPeerDisconnected(peer, DisconnectReason.RemoteConnectionClose);
+    }
+    
+    private void OnDualDataReceived(DualPeer dualPeer, byte[] data, DeliveryMode mode)
+    {
+        var peer = new NetPeer { Id = dualPeer.Id };
+        var reader = new NetPacketReader(data);
+        var method = mode == DeliveryMode.Unreliable ? DeliveryMethod.Unreliable : DeliveryMethod.ReliableOrdered;
+        OnNetworkReceive(peer, reader, method);
     }
     
     private void PrintNetworkInfo()
@@ -260,26 +292,27 @@ public class HeadlessNetService : INetEventListener
         OnPlayerConnected?.Invoke(peer.Id, state);
     }
     
-    public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
+    public void OnPeerDisconnected(NetPeer peer, DisconnectReason reason)
     {
-        Console.WriteLine($"[Server] Player disconnected: {peer.EndPoint} (Reason: {disconnectInfo.Reason})");
+        Console.WriteLine($"[Server] Player disconnected: {peer.EndPoint} (Reason: {reason})");
         
         lock (_lock)
         {
             _players.Remove(peer.Id);
         }
         
-        OnPlayerDisconnected?.Invoke(peer.Id, disconnectInfo.Reason);
+        OnPlayerDisconnected?.Invoke(peer.Id, reason);
     }
     
-    public void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+    public void OnNetworkError(string endPoint, int socketError)
     {
         Console.WriteLine($"[Server] Network error: {socketError} from {endPoint}");
     }
     
-    public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channelNumber, DeliveryMethod deliveryMethod)
+    public void OnNetworkReceive(NetPeer peer, NetDataReader reader, DeliveryMethod deliveryMethod)
     {
-        OnDataReceived?.Invoke(peer.Id, reader, channelNumber);
+        var packetReader = new NetPacketReader(reader.RawData, reader.Position, reader.AvailableBytes);
+        OnDataReceived?.Invoke(peer.Id, packetReader, 0);
     }
     
     private byte[] _cachedLogoData;
@@ -355,7 +388,7 @@ public class HeadlessNetService : INetEventListener
         }
     }
     
-    public void OnConnectionRequest(ConnectionRequest request)
+    public void OnConnectionRequest(NetConnectionRequest request)
     {
         if (PlayerCount >= _config.MaxPlayers)
         {
@@ -364,8 +397,7 @@ public class HeadlessNetService : INetEventListener
             return;
         }
         
-        var data = request.Data;
-        if (data != null && data.GetString() == _config.GameKey)
+        if (request.Key == _config.GameKey)
         {
             request.Accept();
             Console.WriteLine($"[Server] Connection accepted: {request.RemoteEndPoint}");

@@ -24,6 +24,8 @@ public class ServerConfig
     public bool EnableBroadcast { get; set; } = true;
     public string GamePath { get; set; } = "";
     public string ExtractedDataPath { get; set; } = "Data";
+    public string CertPath { get; set; } = "";
+    public string KeyPath { get; set; } = "";
     
     public static ServerConfig Load(string path)
     {
