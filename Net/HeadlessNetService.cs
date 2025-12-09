@@ -44,6 +44,7 @@ public class HeadlessNetService : INetEventListener
         _server.OnPeerConnected += OnDualPeerConnected;
         _server.OnPeerDisconnected += OnDualPeerDisconnected;
         _server.OnDataReceived += OnDualDataReceived;
+        _server.OnUnconnectedReceived += OnUnconnectedMessage;
         
         var kcpPort = _config.Port;
         var quicPort = _config.Port + 1;
@@ -345,6 +346,38 @@ public class HeadlessNetService : INetEventListener
             }
         }
         return _cachedLogoData;
+    }
+    
+    private void OnUnconnectedMessage(IPEndPoint remoteEndPoint, byte[] data)
+    {
+        var reader = new NetDataReader(data);
+        if (!reader.TryGetString(out var msg)) return;
+        
+        if (msg == "DISCOVER_REQUEST")
+        {
+            _writer.Reset();
+            _writer.Put("DISCOVER_RESPONSE");
+            _writer.Put(_config.ServerName);
+            _writer.Put(PlayerCount);
+            _writer.Put(_config.MaxPlayers);
+            _writer.Put(Plugins.PluginManager.Instance?.LoadedPluginCount ?? 0);
+            _writer.Put(_config.ServerIcon ?? "default");
+            
+            var logoData = GetServerLogo();
+            if (logoData != null && logoData.Length > 0)
+            {
+                _writer.Put(true);
+                _writer.Put(logoData.Length);
+                _writer.Put(logoData);
+            }
+            else
+            {
+                _writer.Put(false);
+            }
+            
+            _server?.SendUnconnected(remoteEndPoint, _writer.CopyData());
+            Console.WriteLine($"[Server] Discovery request from {remoteEndPoint}");
+        }
     }
     
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
