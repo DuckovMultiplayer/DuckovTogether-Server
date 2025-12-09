@@ -282,6 +282,38 @@ public class HeadlessNetService : INetEventListener
         OnDataReceived?.Invoke(peer.Id, reader, channelNumber);
     }
     
+    private byte[] _cachedLogoData;
+    private bool _logoLoaded;
+    
+    private byte[] GetServerLogo()
+    {
+        if (_logoLoaded) return _cachedLogoData;
+        _logoLoaded = true;
+        
+        var logoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "server_logo.png");
+        if (File.Exists(logoPath))
+        {
+            try
+            {
+                var fileInfo = new FileInfo(logoPath);
+                if (fileInfo.Length <= 64 * 1024)
+                {
+                    _cachedLogoData = File.ReadAllBytes(logoPath);
+                    Console.WriteLine($"[Server] Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
+                }
+                else
+                {
+                    Console.WriteLine($"[Server] Logo too large (max 64KB): {fileInfo.Length} bytes");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Server] Failed to load logo: {ex.Message}");
+            }
+        }
+        return _cachedLogoData;
+    }
+    
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
     {
         var msg = reader.GetString();
@@ -294,6 +326,19 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(_config.MaxPlayers);
             _writer.Put(Plugins.PluginManager.Instance?.LoadedPluginCount ?? 0);
             _writer.Put(_config.ServerIcon ?? "default");
+            
+            var logoData = GetServerLogo();
+            if (logoData != null && logoData.Length > 0)
+            {
+                _writer.Put(true);
+                _writer.Put(logoData.Length);
+                _writer.Put(logoData);
+            }
+            else
+            {
+                _writer.Put(false);
+            }
+            
             _netManager?.SendUnconnectedMessage(_writer, remoteEndPoint);
             Console.WriteLine($"[Server] Discovery request from {remoteEndPoint}");
         }
