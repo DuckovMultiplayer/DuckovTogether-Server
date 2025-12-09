@@ -42,6 +42,7 @@ public class HeadlessNetService : INetEventListener
         _netManager = new NetManager(this)
         {
             BroadcastReceiveEnabled = _config.EnableBroadcast,
+            UnconnectedMessagesEnabled = true,
             ChannelsCount = 4,
             UseNativeSockets = true
         };
