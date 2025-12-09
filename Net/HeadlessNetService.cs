@@ -296,14 +296,14 @@ public class HeadlessNetService : INetEventListener
             try
             {
                 var fileInfo = new FileInfo(logoPath);
-                if (fileInfo.Length <= 64 * 1024)
+                if (fileInfo.Length <= 1024 * 1024)
                 {
                     _cachedLogoData = File.ReadAllBytes(logoPath);
                     Console.WriteLine($"[Server] Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
                 }
                 else
                 {
-                    Console.WriteLine($"[Server] Logo too large (max 64KB): {fileInfo.Length} bytes");
+                    Console.WriteLine($"[Server] Logo too large (max 1MB): {fileInfo.Length} bytes");
                 }
             }
             catch (Exception ex)
