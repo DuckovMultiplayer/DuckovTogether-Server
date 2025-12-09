@@ -17,6 +17,7 @@ public class ServerConfig
     public int Port { get; set; } = 9050;
     public int MaxPlayers { get; set; } = 4;
     public string ServerName { get; set; } = "Duckov Headless Server";
+    public string ServerDescription { get; set; } = "Welcome to Duckov Together!";
     public string ServerIcon { get; set; } = "default";
     public string GameKey { get; set; } = "DuckovTogether_v2";
     public int TickRate { get; set; } = 60;

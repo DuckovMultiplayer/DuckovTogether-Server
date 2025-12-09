@@ -374,6 +374,8 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(_config.MaxPlayers);
             _writer.Put(Plugins.PluginManager.Instance?.LoadedPluginCount ?? 0);
             _writer.Put(_config.ServerIcon ?? "default");
+            _writer.Put(_config.ServerDescription ?? "");
+            _writer.Put("KCP/UDP");
             
             var logoData = GetServerLogo();
             var maxLogoSize = 50000;
