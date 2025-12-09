@@ -380,6 +380,10 @@ public class HeadlessNetService : INetEventListener
             else
             {
                 _writer.Put(false);
+                if (logoData != null && logoData.Length > maxLogoSize)
+                {
+                    Console.WriteLine($"[Server] Logo too large for discovery ({logoData.Length} > {maxLogoSize}). Compress to <50KB or request after connection.");
+                }
             }
             
             var responseData = _writer.CopyData();
