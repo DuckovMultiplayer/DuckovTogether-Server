@@ -141,10 +141,6 @@ class Program
             Console.WriteLine("\n[Server] Shutting down...");
         };
         
-        Console.WriteLine("[Server] Press Ctrl+C to stop");
-        Console.WriteLine("[Server] Type 'help' for commands");
-        Console.WriteLine();
-        
         var inputThread = new Thread(InputLoop);
         inputThread.IsBackground = true;
         inputThread.Start();

@@ -51,12 +51,82 @@ public class HeadlessNetService : INetEventListener
         {
             Console.WriteLine($"[Server] Started on port {_config.Port}");
             Console.WriteLine($"[Server] Max players: {_config.MaxPlayers}");
+            Console.WriteLine("[Server] Press Ctrl+C to stop");
+            Console.WriteLine("[Server] Type 'help' for commands");
+            Console.WriteLine();
+            PrintNetworkInfo();
         }
         else
         {
             Console.WriteLine($"[Server] Failed to start on port {_config.Port}");
         }
         return started;
+    }
+    
+    private void PrintNetworkInfo()
+    {
+        Console.WriteLine("===========================================");
+        Console.WriteLine("  Connection Information");
+        Console.WriteLine("===========================================");
+        Console.WriteLine($"  Local:    127.0.0.1:{_config.Port}");
+        
+        var lanIPs = GetLanAddresses();
+        foreach (var ip in lanIPs)
+        {
+            Console.WriteLine($"  LAN:      {ip}:{_config.Port}");
+        }
+        
+        Task.Run(async () =>
+        {
+            var publicIP = await GetPublicIPAsync();
+            if (!string.IsNullOrEmpty(publicIP))
+            {
+                Console.WriteLine($"  Public:   {publicIP}:{_config.Port}");
+            }
+            Console.WriteLine("===========================================");
+            Console.WriteLine();
+        });
+    }
+    
+    private List<string> GetLanAddresses()
+    {
+        var addresses = new List<string>();
+        try
+        {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList)
+            {
+                if (ip.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip))
+                {
+                    addresses.Add(ip.ToString());
+                }
+            }
+        }
+        catch { }
+        return addresses;
+    }
+    
+    private async Task<string?> GetPublicIPAsync()
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await client.GetStringAsync("https://api.ipify.org");
+            return response.Trim();
+        }
+        catch
+        {
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                var response = await client.GetStringAsync("https://icanhazip.com");
+                return response.Trim();
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
     
     public void Stop()
