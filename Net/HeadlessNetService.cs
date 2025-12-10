@@ -307,6 +307,8 @@ public class HeadlessNetService : INetEventListener
         try
         {
             var currentScene = GameServer.Instance?.Saves?.CurrentWorld?.CurrentScene ?? "";
+            if (string.IsNullOrEmpty(currentScene))
+                currentScene = _config.DefaultScene ?? "Base_SceneV2";
             var gameTime = GameServer.Instance?.Saves?.CurrentWorld?.GameTime ?? 8f;
             var gameDay = GameServer.Instance?.Saves?.CurrentWorld?.GameDay ?? 1;
             

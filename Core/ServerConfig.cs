@@ -27,6 +27,7 @@ public class ServerConfig
     public string ExtractedDataPath { get; set; } = "Data";
     public string CertPath { get; set; } = "";
     public string KeyPath { get; set; } = "";
+    public string DefaultScene { get; set; } = "Base_SceneV2";
     
     public static ServerConfig Load(string path)
     {
