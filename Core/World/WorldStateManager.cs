@@ -79,6 +79,7 @@ public class WorldStateManager
             VoteStatus[initiatorId] = true;
             
             Console.WriteLine($"[WorldState] Vote started for scene: {sceneId} by {initiatorId}");
+            BroadcastVoteState();
         }
     }
     
@@ -89,6 +90,7 @@ public class WorldStateManager
             if (!IsVoteActive) return;
             VoteStatus[playerId] = ready;
             Console.WriteLine($"[WorldState] Player {playerId} vote: {ready}");
+            BroadcastVoteState();
             CheckVoteResult();
         }
     }
@@ -101,6 +103,19 @@ public class WorldStateManager
             VoteTargetScene = "";
             VoteStatus.Clear();
             Console.WriteLine("[WorldState] Vote cancelled");
+            BroadcastVoteState();
+        }
+    }
+    
+    private void BroadcastVoteState()
+    {
+        try
+        {
+            Sync.SyncManager.Instance.BroadcastSceneVote(VoteTargetScene, VoteStatus);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WorldState] BroadcastVoteState error: {ex.Message}");
         }
     }
     

@@ -40,6 +40,7 @@ public enum MessageType : byte
     GrenadeThrow = 33,
     MeleeAttack = 34,
     Damage = 40,
+    DestructibleHurt = 41,
     DoorInteract = 50,
     SwitchInteract = 51,
     ExtractStart = 52,
@@ -286,6 +287,9 @@ public class MessageHandler
                 break;
             case MessageType.Damage:
                 HandleDamage(peerId, reader);
+                break;
+            case MessageType.DestructibleHurt:
+                HandleDestructibleHurt(peerId, reader);
                 break;
             case MessageType.ItemPickup:
                 HandleItemPickup(peerId, reader);
@@ -575,6 +579,30 @@ public class MessageHandler
         catch (Exception ex)
         {
             Console.WriteLine($"[Error] HandleChatMessage: {ex.Message}");
+        }
+    }
+    
+    private void HandleDestructibleHurt(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var objectId = reader.GetUInt();
+            var damage = reader.GetFloat();
+            
+            _writer.Reset();
+            _writer.Put((byte)MessageType.DestructibleHurt);
+            _writer.Put(objectId);
+            _writer.Put(damage);
+            _writer.Put(peerId);
+            
+            var mode = DeliveryMode.Reliable;
+            _netService.Server?.SendToAll(_writer.CopyData(), mode);
+            
+            Console.WriteLine($"[Destructible] Object {objectId} hurt by peer {peerId}, damage={damage}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Error] HandleDestructibleHurt: {ex.Message}");
         }
     }
     
