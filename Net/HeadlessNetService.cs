@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Sockets;
 using DuckovNet;
 using DuckovTogether.Core;
+using DuckovTogether.Core.GameLogic;
 
 namespace DuckovTogether.Net;
 
@@ -297,6 +298,41 @@ public class HeadlessNetService : INetEventListener
         }
         
         OnPlayerConnected?.Invoke(peer.Id, state);
+        
+        SendServerState(peer.Id);
+    }
+    
+    private void SendServerState(int peerId)
+    {
+        try
+        {
+            var currentScene = GameServer.Instance?.Saves?.CurrentWorld?.CurrentScene ?? "";
+            var gameTime = GameServer.Instance?.Saves?.CurrentWorld?.GameTime ?? 8f;
+            var gameDay = GameServer.Instance?.Saves?.CurrentWorld?.GameDay ?? 1;
+            
+            var serverState = new
+            {
+                type = "serverState",
+                scene = currentScene,
+                gameTime = gameTime,
+                gameDay = gameDay,
+                serverName = _config.ServerName,
+                maxPlayers = _config.MaxPlayers,
+                playerCount = _players.Count
+            };
+            
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(serverState);
+            _writer.Reset();
+            _writer.Put((byte)9);
+            _writer.Put(json);
+            
+            SendToPeer(peerId, _writer, DeliveryMethod.ReliableOrdered);
+            Console.WriteLine($"[Server] Sent server state to peer {peerId}: scene={currentScene}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Server] Error sending server state: {ex.Message}");
+        }
     }
     
     public void OnPeerDisconnected(NetPeer peer, DisconnectReason reason)
