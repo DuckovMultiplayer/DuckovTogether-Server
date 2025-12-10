@@ -330,10 +330,70 @@ public class HeadlessNetService : INetEventListener
             
             SendToPeer(peerId, _writer, DeliveryMethod.ReliableOrdered);
             Console.WriteLine($"[Server] Sent server state to peer {peerId}: scene={currentScene}");
+            
+            SendWorldSync(peerId);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Server] Error sending server state: {ex.Message}");
+        }
+    }
+    
+    private void SendWorldSync(int peerId)
+    {
+        try
+        {
+            var world = GameServer.Instance?.Saves?.CurrentWorld;
+            if (world == null) return;
+            
+            var buildingsList = new List<object>();
+            if (world.Buildings != null)
+            {
+                foreach (var b in world.Buildings.Values.Where(b => !b.IsDestroyed))
+                {
+                    buildingsList.Add(new {
+                        id = b.BuildingId,
+                        buildingType = b.BuildingType,
+                        ownerId = b.OwnerId,
+                        sceneId = b.SceneId,
+                        posX = b.PosX, posY = b.PosY, posZ = b.PosZ,
+                        rotX = b.RotX, rotY = b.RotY, rotZ = b.RotZ,
+                        health = b.Health, level = b.Level
+                    });
+                }
+            }
+            
+            var lootList = new List<object>();
+            if (world.LootContainers != null)
+            {
+                foreach (var c in world.LootContainers.Values)
+                {
+                    lootList.Add(new { id = c.ContainerId, sceneId = c.SceneId, isLooted = c.IsLooted });
+                }
+            }
+            
+            var dropList = new List<object>();
+            if (world.DroppedItems != null)
+            {
+                foreach (var d in world.DroppedItems)
+                {
+                    dropList.Add(new { id = d.ItemId, itemType = d.ItemType, posX = d.PosX, posY = d.PosY, posZ = d.PosZ, sceneId = d.SceneId });
+                }
+            }
+            
+            var worldSync = new { type = "worldSync", buildings = buildingsList, lootContainers = lootList, droppedItems = dropList };
+            
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(worldSync);
+            _writer.Reset();
+            _writer.Put((byte)9);
+            _writer.Put(json);
+            
+            SendToPeer(peerId, _writer, DeliveryMethod.ReliableOrdered);
+            Console.WriteLine($"[Server] Sent world sync to peer {peerId}: buildings={buildingsList.Count}, loot={lootList.Count}, items={dropList.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Server] Error sending world sync: {ex.Message}");
         }
     }
     
