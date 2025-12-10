@@ -181,7 +181,8 @@ public class HeadlessNetService : INetEventListener
     
     public void SendToAll(NetDataWriter writer, DeliveryMethod method = DeliveryMethod.ReliableOrdered)
     {
-        _netManager?.SendToAll(writer, method);
+        var mode = method == DeliveryMethod.Unreliable ? DeliveryMode.Unreliable : DeliveryMode.Reliable;
+        _server?.SendToAll(writer.CopyData(), mode);
     }
     
     public void SendToPeer(NetPeer peer, NetDataWriter writer, DeliveryMethod method = DeliveryMethod.ReliableOrdered)
@@ -247,9 +248,8 @@ public class HeadlessNetService : INetEventListener
     
     public void SendToAll(byte[] data, DeliveryMethod method)
     {
-        _writer.Reset();
-        _writer.Put(data);
-        _netManager?.SendToAll(_writer, method);
+        var mode = method == DeliveryMethod.Unreliable ? DeliveryMode.Unreliable : DeliveryMode.Reliable;
+        _server?.SendToAll(data, mode);
     }
     
     public void SendToPeer(int peerId, byte[] data, DeliveryMethod method)
@@ -265,8 +265,8 @@ public class HeadlessNetService : INetEventListener
     
     public void SendToPeer(int peerId, NetDataWriter writer, DeliveryMethod method = DeliveryMethod.ReliableOrdered)
     {
-        var peer = GetPeer(peerId);
-        peer?.Send(writer, method);
+        var mode = method == DeliveryMethod.Unreliable ? DeliveryMode.Unreliable : DeliveryMode.Reliable;
+        _server?.Send(peerId, writer.CopyData(), mode);
     }
     
     public void DisconnectPeer(int peerId, string reason)
