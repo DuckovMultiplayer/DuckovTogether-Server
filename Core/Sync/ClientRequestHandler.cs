@@ -28,6 +28,7 @@ public class ClientRequestHandler
                     break;
                     
                 case "updateClientStatus":
+                case "clientStatus":
                     HandleClientStatus(peerId, json);
                     break;
                     
