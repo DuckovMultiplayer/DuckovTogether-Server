@@ -101,6 +101,7 @@ public class MessageHandler
         CombatSyncManager.Instance.Initialize(netService);
         WorldSyncManager.Instance.Initialize(netService);
         ItemSyncManager.Instance.Initialize(netService);
+        BuildingSyncManager.Instance.SetBroadcastHandler(BroadcastJsonToAll);
         
         AIManager.Instance.OnAIAttack += OnAIAttackPlayer;
         AIManager.Instance.OnAIDeath += OnAIDeathHandler;
@@ -115,6 +116,14 @@ public class MessageHandler
     private void OnAIDeathHandler(int entityId)
     {
         SyncManager.Instance.BroadcastAIDeath(entityId);
+    }
+    
+    private void BroadcastJsonToAll(string json)
+    {
+        _writer.Reset();
+        _writer.Put((byte)MessageType.JsonMessage);
+        _writer.Put(json);
+        _netService.SendToAll(_writer);
     }
     
     private DateTime _lastDeltaSync = DateTime.Now;
