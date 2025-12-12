@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using DuckovTogether.Core.Save;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.World;
 
@@ -32,7 +33,7 @@ public class WorldStateManager
     {
         ServerSaveManager.Instance.LoadWorld();
         CurrentSceneId = ServerSaveManager.Instance.CurrentWorld.CurrentScene;
-        Console.WriteLine($"[WorldState] Initialized, scene: {CurrentSceneId}");
+        Log.Info($"WorldState initialized, scene: {CurrentSceneId}");
     }
     
     public void Update()
@@ -79,7 +80,7 @@ public class WorldStateManager
         {
             if (IsVoteActive)
             {
-                Console.WriteLine("[WorldState] Vote already active");
+                Log.Debug("Vote already active");
                 return;
             }
             
@@ -88,7 +89,7 @@ public class WorldStateManager
             VoteStatus.Clear();
             VoteStatus[initiatorId] = true;
             
-            Console.WriteLine($"[WorldState] Vote started for scene: {sceneId} by {initiatorId}");
+            Log.Info($"Vote started for scene: {sceneId} by {initiatorId}");
             BroadcastVoteState();
         }
     }
@@ -99,7 +100,7 @@ public class WorldStateManager
         {
             if (!IsVoteActive) return;
             VoteStatus[playerId] = ready;
-            Console.WriteLine($"[WorldState] Player {playerId} vote: {ready}");
+            Log.Debug($"Player {playerId} vote: {ready}");
             BroadcastVoteState();
             CheckVoteResult();
         }
@@ -112,7 +113,7 @@ public class WorldStateManager
             IsVoteActive = false;
             VoteTargetScene = "";
             VoteStatus.Clear();
-            Console.WriteLine("[WorldState] Vote cancelled");
+            Log.Info("Vote cancelled");
             BroadcastVoteState();
         }
     }
@@ -125,7 +126,7 @@ public class WorldStateManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[WorldState] BroadcastVoteState error: {ex.Message}");
+            Log.Error(ex, "BroadcastVoteState");
         }
     }
     
@@ -136,7 +137,7 @@ public class WorldStateManager
         var allReady = VoteStatus.Values.All(v => v);
         if (allReady && VoteStatus.Count >= 1)
         {
-            Console.WriteLine($"[WorldState] Vote passed! Transitioning to: {VoteTargetScene}");
+            Log.Info($"Vote passed! Transitioning to: {VoteTargetScene}");
             TransitionScene(VoteTargetScene);
         }
     }
@@ -153,7 +154,7 @@ public class WorldStateManager
             VoteStatus.Clear();
             
             ServerSaveManager.Instance.SaveWorld();
-            Console.WriteLine($"[WorldState] Scene changed to: {newSceneId}");
+            Log.Info($"Scene changed to: {newSceneId}");
         }
     }
     
@@ -225,7 +226,7 @@ public class WorldStateManager
             if (item != null)
             {
                 ServerSaveManager.Instance.CurrentWorld.DroppedItems.Remove(item);
-                Console.WriteLine($"[WorldState] Item {itemId} picked up by {pickupBy}");
+                Log.Debug($"Item {itemId} picked up by {pickupBy}");
                 return true;
             }
             return false;
@@ -257,7 +258,7 @@ public class WorldStateManager
                 PlacedAt = DateTime.Now
             };
             
-            Console.WriteLine($"[WorldState] Building placed: {buildingType} by {playerId}");
+            Log.Debug($"Building placed: {buildingType} by {playerId}");
         }
     }
     
@@ -271,7 +272,7 @@ public class WorldStateManager
             {
                 building.IsDestroyed = true;
                 building.DestroyedAt = DateTime.Now;
-                Console.WriteLine($"[WorldState] Building destroyed: {buildingId} by {destroyedBy}");
+                Log.Debug($"Building destroyed: {buildingId} by {destroyedBy}");
             }
         }
     }
@@ -285,7 +286,7 @@ public class WorldStateManager
             if (world.Buildings.TryGetValue(buildingId, out var building))
             {
                 building.Level = newLevel;
-                Console.WriteLine($"[WorldState] Building upgraded: {buildingId} to level {newLevel}");
+                Log.Debug($"Building upgraded: {buildingId} to level {newLevel}");
             }
         }
     }
@@ -302,7 +303,7 @@ public class WorldStateManager
     
     public void Shutdown()
     {
-        Console.WriteLine("[WorldState] Shutting down...");
+        Log.Info("WorldState shutting down...");
         ServerSaveManager.Instance.SaveAll();
     }
 }
