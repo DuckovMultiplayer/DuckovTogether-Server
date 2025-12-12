@@ -13,6 +13,7 @@ using DuckovNet;
 using Newtonsoft.Json;
 using DuckovTogether.Core.Sync;
 using DuckovTogether.Core.GameLogic;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Net;
 
@@ -447,6 +448,7 @@ public class MessageHandler
         try
         {
             var json = reader.GetString();
+            Log.Debug($"[JSON] Raw message from peer {peerId}: {json.Substring(0, Math.Min(200, json.Length))}");
             var baseMsg = JsonConvert.DeserializeObject<BaseJsonMessage>(json);
             if (baseMsg == null) return;
             
@@ -461,7 +463,7 @@ public class MessageHandler
             
             if (requestTypes.Contains(baseMsg.type))
             {
-                Console.WriteLine($"[JSON] Received {baseMsg.type} from peer {peerId}");
+                Log.Info($"[JSON] Received {baseMsg.type} from peer {peerId}");
                 ClientRequestHandler.Instance.HandleJsonRequest(peerId, json, peer!);
                 
                 if (baseMsg.type == "clientStatus" || baseMsg.type == "updateClientStatus")
