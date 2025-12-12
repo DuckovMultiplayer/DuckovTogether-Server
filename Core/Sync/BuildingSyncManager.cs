@@ -75,7 +75,7 @@ public class BuildingSyncManager
             };
             
             world.Buildings[buildingId] = building;
-            Console.WriteLine($"[BuildingSync] Building placed: {buildingType} by {playerId} at ({posX}, {posY}, {posZ})");
+            Log.Debug($"Building placed: {buildingType} by {playerId} at ({posX}, {posY}, {posZ})");
             
             BroadcastBuildingPlaced(building);
         }
@@ -89,13 +89,13 @@ public class BuildingSyncManager
             
             if (!world.Buildings.TryGetValue(buildingId, out var building))
             {
-                Console.WriteLine($"[BuildingSync] Building {buildingId} not found");
+                Log.Debug($"Building {buildingId} not found");
                 return;
             }
             
             building.IsDestroyed = true;
             building.DestroyedAt = DateTime.Now;
-            Console.WriteLine($"[BuildingSync] Building destroyed: {buildingId} by {playerId}");
+            Log.Debug($"Building destroyed: {buildingId} by {playerId}");
             
             BroadcastBuildingDestroyed(buildingId);
         }
@@ -109,12 +109,12 @@ public class BuildingSyncManager
             
             if (!world.Buildings.TryGetValue(buildingId, out var building))
             {
-                Console.WriteLine($"[BuildingSync] Building {buildingId} not found");
+                Log.Debug($"Building {buildingId} not found");
                 return;
             }
             
             building.Level = newLevel;
-            Console.WriteLine($"[BuildingSync] Building upgraded: {buildingId} to level {newLevel}");
+            Log.Debug($"Building upgraded: {buildingId} to level {newLevel}");
             
             BroadcastBuildingUpgraded(buildingId, newLevel);
         }
