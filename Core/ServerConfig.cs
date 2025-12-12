@@ -27,16 +27,37 @@ public class ServerConfig
     public string ExtractedDataPath { get; set; } = "Data";
     public string CertPath { get; set; } = "";
     public string KeyPath { get; set; } = "";
-    public string DefaultScene { get; set; } = "Base_SceneV2";
+    public string DefaultScene { get; set; } = "Level_Base";
     public List<string> KnownScenes { get; set; } = new()
     {
         "Startup",
-        "MainMenu", 
-        "Base_SceneV2",
-        "Level_Factory",
-        "Level_Woods",
-        "Level_Customs",
-        "Level_Reserve"
+        "MainMenu",
+        "Level_Base",
+        "Level_0",
+        "Level_1",
+        "Level_2",
+        "Level_4",
+        "Level_7",
+        "Level_8",
+        "Level_9",
+        "Level_20",
+        "Level_26",
+        "Level_27",
+        "Level_28",
+        "Level_29",
+        "Level_33",
+        "Level_42",
+        "Level_43",
+        "Level_44",
+        "Level_47",
+        "Level_Farm_01",
+        "Level_Farm_JLab_Facility",
+        "Level_GroundZero_1",
+        "Level_Guide_Main",
+        "Level_HiddenWarehouse",
+        "Level_JLab_2",
+        "Level_stormZone_1",
+        "Level_DemoChallenge_Main"
     };
     
     public static ServerConfig Load(string path)
