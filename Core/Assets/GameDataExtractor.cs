@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Text;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Assets;
@@ -58,7 +59,7 @@ public class GameDataExtractor
                 };
             }
         }
-        Console.WriteLine($"[DataExtractor] Loaded {knownScenes.Count} known scenes from config");
+        Log.Debug($"Loaded {knownScenes.Count} known scenes from config");
     }
     
     public bool Extract(string gamePath)
@@ -66,23 +67,23 @@ public class GameDataExtractor
         var dataPath = Path.Combine(gamePath, "Duckov_Data");
         if (!Directory.Exists(dataPath)) return false;
         
-        Console.WriteLine("[DataExtractor] Starting comprehensive game data extraction...");
+        Log.Info("Starting comprehensive game data extraction...");
         
         ExtractFromResources(Path.Combine(dataPath, "resources.assets"));
         ExtractFromSharedAssets(dataPath);
         ExtractSceneList(dataPath);
         ExtractFromLocalization(gamePath);
         
-        Console.WriteLine($"[DataExtractor] Extracted:");
-        Console.WriteLine($"  - Scenes: {Scenes.Count}");
-        Console.WriteLine($"  - Prefabs: {Prefabs.Count}");
-        Console.WriteLine($"  - Weapons: {Weapons.Count}");
-        Console.WriteLine($"  - Armors: {Armors.Count}");
-        Console.WriteLine($"  - SpawnPoints: {SpawnPoints.Count}");
-        Console.WriteLine($"  - ExtractPoints: {ExtractPoints.Count}");
-        Console.WriteLine($"  - LootContainers: {LootContainers.Count}");
-        Console.WriteLine($"  - Doors: {Doors.Count}");
-        Console.WriteLine($"  - Quests: {Quests.Count}");
+        Log.Info("Extracted:");
+        Log.Debug($"  - Scenes: {Scenes.Count}");
+        Log.Debug($"  - Prefabs: {Prefabs.Count}");
+        Log.Debug($"  - Weapons: {Weapons.Count}");
+        Log.Debug($"  - Armors: {Armors.Count}");
+        Log.Debug($"  - SpawnPoints: {SpawnPoints.Count}");
+        Log.Debug($"  - ExtractPoints: {ExtractPoints.Count}");
+        Log.Debug($"  - LootContainers: {LootContainers.Count}");
+        Log.Debug($"  - Doors: {Doors.Count}");
+        Log.Debug($"  - Quests: {Quests.Count}");
         
         return true;
     }
@@ -159,7 +160,7 @@ public class GameDataExtractor
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DataExtractor] Error reading resources: {ex.Message}");
+            Log.Error($"Error reading resources: {ex.Message}");
         }
     }
     
@@ -487,7 +488,7 @@ public class GameDataExtractor
         };
         SaveJson(Path.Combine(outputPath, "summary.json"), summary);
         
-        Console.WriteLine($"[DataExtractor] Saved all game data to: {outputPath}");
+        Log.Info($"Saved all game data to: {outputPath}");
     }
     
     private void SaveJson<T>(string path, T data)

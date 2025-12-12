@@ -11,6 +11,7 @@
 using AssetsTools.NET;
 using AssetsTools.NET.Extra;
 using System.Text;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Assets;
 
@@ -36,14 +37,14 @@ public class UnityAssetReader
         
         if (!Directory.Exists(gamePath))
         {
-            Console.WriteLine($"[AssetReader] Game path not found: {gamePath}");
+            Log.Warn($"Game path not found: {gamePath}");
             return false;
         }
         
         var dataPath = Path.Combine(gamePath, "Duckov_Data");
         if (!Directory.Exists(dataPath))
         {
-            Console.WriteLine($"[AssetReader] Data path not found: {dataPath}");
+            Log.Warn($"Data path not found: {dataPath}");
             return false;
         }
         
@@ -60,17 +61,17 @@ public class UnityAssetReader
         
         if (!LoadExportedData())
         {
-            Console.WriteLine("[AssetReader] No exported data found, trying native parsing...");
+            Log.Info("No exported data found, trying native parsing...");
             
             if (!TryNativeParse())
             {
-                Console.WriteLine("[AssetReader] Native parse incomplete, trying AssetsTools...");
+                Log.Info("Native parse incomplete, trying AssetsTools...");
                 LoadGameAssets();
                 ProcessExtractedData();
             }
         }
         
-        Console.WriteLine($"[AssetReader] Loaded: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types");
+        Log.Info($"Loaded: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types");
         return true;
     }
     
@@ -79,7 +80,7 @@ public class UnityAssetReader
         var managedPath = Path.Combine(gamePath, "Duckov_Data", "Managed");
         if (!Directory.Exists(managedPath))
         {
-            Console.WriteLine("[AssetReader] Managed folder not found");
+            Log.Debug("Managed folder not found");
             return;
         }
         
@@ -95,7 +96,7 @@ public class UnityAssetReader
             }
         }
         
-        Console.WriteLine($"[AssetReader] Found {assemblyPaths.Count} game assemblies");
+        Log.Debug($"Found {assemblyPaths.Count} game assemblies");
     }
     
     private bool TryNativeParse()
@@ -176,15 +177,15 @@ public class UnityAssetReader
         
         if (exportPath == null)
         {
-            Console.WriteLine("[AssetReader] Export paths checked:");
+            Log.Debug("Export paths checked:");
             foreach (var p in exportPaths)
             {
-                Console.WriteLine($"  - {p}");
+                Log.Debug($"  - {p}");
             }
             return false;
         }
         
-        Console.WriteLine($"[AssetReader] Loading exported data from: {exportPath}");
+        Log.Info($"Loading exported data from: {exportPath}");
         
         var itemsFile = Path.Combine(exportPath, "items.json");
         if (File.Exists(itemsFile))
@@ -225,12 +226,12 @@ public class UnityAssetReader
                         Weight = item.Weight
                     };
                 }
-                Console.WriteLine($"[AssetReader] Loaded {items.Count} items from JSON");
+                Log.Debug($"Loaded {items.Count} items from JSON");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load items JSON: {ex.Message}");
+            Log.Error($"Failed to load items JSON: {ex.Message}");
         }
     }
     
@@ -286,12 +287,12 @@ public class UnityAssetReader
                 }
                 
                 Scenes[scene.SceneId] = sceneData;
-                Console.WriteLine($"[AssetReader] Loaded scene: {scene.SceneId} ({sceneData.AISpawns.Count} AI, {sceneData.LootSpawns.Count} loot)");
+                Log.Debug($"Loaded scene: {scene.SceneId} ({sceneData.AISpawns.Count} AI, {sceneData.LootSpawns.Count} loot)");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load scene JSON: {ex.Message}");
+            Log.Error($"Failed to load scene JSON: {ex.Message}");
         }
     }
     
@@ -300,7 +301,7 @@ public class UnityAssetReader
         var locPath = Path.Combine(_gamePath!, "Duckov_Data", "StreamingAssets", "Localization", "English.csv");
         if (!File.Exists(locPath))
         {
-            Console.WriteLine("[AssetReader] Localization file not found");
+            Log.Debug("Localization file not found");
             return;
         }
         
@@ -320,11 +321,11 @@ public class UnityAssetReader
                     }
                 }
             }
-            Console.WriteLine($"[AssetReader] Loaded {Localization.Count} localization entries");
+            Log.Debug($"Loaded {Localization.Count} localization entries");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load localization: {ex.Message}");
+            Log.Error($"Failed to load localization: {ex.Message}");
         }
     }
     
@@ -335,7 +336,7 @@ public class UnityAssetReader
             var ggmPath = Path.Combine(_gamePath!, "Duckov_Data", "globalgamemanagers");
             if (!File.Exists(ggmPath))
             {
-                Console.WriteLine("[AssetReader] globalgamemanagers not found");
+                Log.Debug("globalgamemanagers not found");
                 return;
             }
             
@@ -348,7 +349,7 @@ public class UnityAssetReader
             var resourcesPath = Path.Combine(_gamePath!, "Duckov_Data", "resources.assets");
             if (File.Exists(resourcesPath))
             {
-                Console.WriteLine("[AssetReader] Loading resources.assets...");
+                Log.Debug("Loading resources.assets...");
                 LoadAssetsFile(resourcesPath);
             }
             
@@ -357,7 +358,7 @@ public class UnityAssetReader
                 var sharedPath = Path.Combine(_gamePath!, "Duckov_Data", $"sharedassets{i}.assets");
                 if (File.Exists(sharedPath))
                 {
-                    Console.WriteLine($"[AssetReader] Loading sharedassets{i}.assets...");
+                    Log.Debug($"Loading sharedassets{i}.assets...");
                     LoadAssetsFile(sharedPath);
                 }
             }
@@ -373,7 +374,7 @@ public class UnityAssetReader
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load assets: {ex.Message}");
+            Log.Error($"Failed to load assets: {ex.Message}");
         }
     }
     
@@ -403,7 +404,7 @@ public class UnityAssetReader
                         if (firstMono && Path.GetFileName(path) == "resources.assets")
                         {
                             firstMono = false;
-                            Console.WriteLine($"[Debug] MonoBehaviour fields: {string.Join(", ", baseField.Children.Take(10).Select(c => c.FieldName))}");
+                            Log.Debug($"MonoBehaviour fields: {string.Join(", ", baseField.Children.Take(10).Select(c => c.FieldName))}");
                         }
                         
                         var name = baseField["m_Name"]?.AsString ?? "";
@@ -423,7 +424,7 @@ public class UnityAssetReader
                 {
                     if (firstMono && info.TypeId == (int)AssetClassID.MonoBehaviour)
                     {
-                        Console.WriteLine($"[Debug] MonoBehaviour read error: {ex.Message}");
+                        Log.Debug($"MonoBehaviour read error: {ex.Message}");
                         firstMono = false;
                     }
                 }
@@ -432,7 +433,7 @@ public class UnityAssetReader
             if (monoCount > 0 && assetNames.Count > 0)
             {
                 var sampleNames = assetNames.Take(5);
-                Console.WriteLine($"[AssetReader] {Path.GetFileName(path)}: {monoCount} MonoBehaviours, samples: {string.Join(", ", sampleNames)}");
+                Log.Debug($"{Path.GetFileName(path)}: {monoCount} MonoBehaviours, samples: {string.Join(", ", sampleNames)}");
             }
             
             if (scriptNames.Count > 0)
@@ -447,7 +448,7 @@ public class UnityAssetReader
                 
                 if (relevantScripts.Any())
                 {
-                    Console.WriteLine($"[AssetReader] Found scripts: {string.Join(", ", relevantScripts)}");
+                    Log.Debug($"Found scripts: {string.Join(", ", relevantScripts)}");
                 }
             }
             
@@ -455,7 +456,7 @@ public class UnityAssetReader
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load {path}: {ex.Message}");
+            Log.Error($"Failed to load {path}: {ex.Message}");
         }
     }
     
@@ -532,7 +533,7 @@ public class UnityAssetReader
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[AssetReader] Failed to load level {levelIndex}: {ex.Message}");
+            Log.Error($"Failed to load level {levelIndex}: {ex.Message}");
         }
     }
     
@@ -1042,7 +1043,7 @@ public class UnityAssetReader
         Directory.CreateDirectory(parsedDir);
         NativeAssetParser.Instance.SaveToJson(parsedDir);
         
-        Console.WriteLine($"[AssetReader] Saved extracted data to: {outputPath}");
+        Log.Info($"Saved extracted data to: {outputPath}");
     }
 }
 

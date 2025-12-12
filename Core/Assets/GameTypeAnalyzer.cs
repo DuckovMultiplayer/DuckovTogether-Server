@@ -10,6 +10,7 @@
 
 using Mono.Cecil;
 using System.Text.RegularExpressions;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Assets;
 
@@ -61,7 +62,7 @@ public class GameTypeAnalyzer
         var managedPath = Path.Combine(gamePath, "Duckov_Data", "Managed");
         if (!Directory.Exists(managedPath))
         {
-            Console.WriteLine($"[TypeAnalyzer] Managed folder not found: {managedPath}");
+            Log.Warn($"Managed folder not found: {managedPath}");
             return false;
         }
         
@@ -78,18 +79,18 @@ public class GameTypeAnalyzer
             var dllPath = Path.Combine(managedPath, dllName);
             if (File.Exists(dllPath))
             {
-                Console.WriteLine($"[TypeAnalyzer] Analyzing: {dllName}");
+                Log.Debug($"Analyzing: {dllName}");
                 AnalyzeDll(dllPath);
             }
         }
         
         CategorizeTypes();
         
-        Console.WriteLine($"[TypeAnalyzer] Found {Types.Count} types total");
-        Console.WriteLine($"[TypeAnalyzer] Item types: {ItemTypes.Count}");
-        Console.WriteLine($"[TypeAnalyzer] AI types: {AITypes.Count}");
-        Console.WriteLine($"[TypeAnalyzer] Loot types: {LootTypes.Count}");
-        Console.WriteLine($"[TypeAnalyzer] Building types: {BuildingTypes.Count}");
+        Log.Info($"Found {Types.Count} types total");
+        Log.Debug($"Item types: {ItemTypes.Count}");
+        Log.Debug($"AI types: {AITypes.Count}");
+        Log.Debug($"Loot types: {LootTypes.Count}");
+        Log.Debug($"Building types: {BuildingTypes.Count}");
         
         return true;
     }
@@ -122,7 +123,7 @@ public class GameTypeAnalyzer
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[TypeAnalyzer] Error analyzing {dllPath}: {ex.Message}");
+            Log.Error($"Error analyzing {dllPath}: {ex.Message}");
         }
     }
     
@@ -271,13 +272,13 @@ public class GameTypeAnalyzer
     
     public void PrintItemTypeFields()
     {
-        Console.WriteLine("\n=== Item Type Fields ===");
+        Log.Debug("=== Item Type Fields ===");
         foreach (var kvp in ItemTypes.Take(10))
         {
-            Console.WriteLine($"\n{kvp.Value.Name}:");
+            Log.Debug($"{kvp.Value.Name}:");
             foreach (var field in kvp.Value.Fields.Take(10))
             {
-                Console.WriteLine($"  - {field.Name}: {field.TypeName}");
+                Log.Debug($"  - {field.Name}: {field.TypeName}");
             }
         }
     }

@@ -8,6 +8,7 @@
 // Commercial use requires explicit written permission from the authors.
 // -----------------------------------------------------------------------
 
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Assets;
@@ -23,7 +24,7 @@ public class BuildingDataExtractor
     {
         if (!File.Exists(itemsJsonPath))
         {
-            Console.WriteLine($"[BuildingExtractor] Items file not found: {itemsJsonPath}");
+            Log.Warn($"Items file not found: {itemsJsonPath}");
             return false;
         }
         
@@ -34,7 +35,7 @@ public class BuildingDataExtractor
             
             if (items == null)
             {
-                Console.WriteLine("[BuildingExtractor] Failed to parse items.json");
+                Log.Warn("Failed to parse items.json");
                 return false;
             }
             
@@ -64,12 +65,12 @@ public class BuildingDataExtractor
                 }
             }
             
-            Console.WriteLine($"[BuildingExtractor] Extracted {Buildings.Count} building definitions");
+            Log.Info($"Extracted {Buildings.Count} building definitions");
             return Buildings.Count > 0;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[BuildingExtractor] Error: {ex.Message}");
+            Log.Error($"BuildingExtractor error: {ex.Message}");
             return false;
         }
     }
@@ -149,7 +150,7 @@ public class BuildingDataExtractor
         var json = JsonConvert.SerializeObject(Buildings.Values.ToList(), Formatting.Indented);
         File.WriteAllText(outputPath, json);
         
-        Console.WriteLine($"[BuildingExtractor] Saved {Buildings.Count} buildings to: {outputPath}");
+        Log.Info($"Saved {Buildings.Count} buildings to: {outputPath}");
     }
     
     private class ItemEntry

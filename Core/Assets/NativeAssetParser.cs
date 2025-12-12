@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Text;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Assets;
@@ -45,11 +46,11 @@ public class NativeAssetParser
         var dataPath = Path.Combine(gamePath, "Duckov_Data");
         if (!Directory.Exists(dataPath))
         {
-            Console.WriteLine($"[NativeParser] Data path not found: {dataPath}");
+            Log.Warn($"Data path not found: {dataPath}");
             return false;
         }
         
-        Console.WriteLine("[NativeParser] Starting native asset parsing...");
+        Log.Info("Starting native asset parsing...");
         
         ParseResourcesAsset(Path.Combine(dataPath, "resources.assets"));
         
@@ -62,7 +63,7 @@ public class NativeAssetParser
             }
         }
         
-        Console.WriteLine($"[NativeParser] Parsed: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types, {Buildings.Count} buildings");
+        Log.Info($"Parsed: {Items.Count} items, {Scenes.Count} scenes, {AITypes.Count} AI types, {Buildings.Count} buildings");
         return Items.Count > 0 || Scenes.Count > 0;
     }
     
@@ -122,11 +123,11 @@ public class NativeAssetParser
                 }
             }
             
-            Console.WriteLine($"[NativeParser] resources.assets: {itemCount} items, {aiCount} AI types, {Buildings.Count} buildings");
+            Log.Debug($"resources.assets: {itemCount} items, {aiCount} AI types, {Buildings.Count} buildings");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[NativeParser] Error parsing resources: {ex.Message}");
+            Log.Error($"Error parsing resources: {ex.Message}");
         }
     }
     
@@ -176,7 +177,7 @@ public class NativeAssetParser
             
             if (itemCount > 0 || buildingCount > 0)
             {
-                Console.WriteLine($"[NativeParser] sharedassets{index}: {itemCount} items, {buildingCount} buildings");
+                Log.Debug($"sharedassets{index}: {itemCount} items, {buildingCount} buildings");
             }
         }
         catch { /* Ignore native parse errors */ }
@@ -405,7 +406,7 @@ public class NativeAssetParser
         var buildingsJson = JsonConvert.SerializeObject(Buildings.Values.ToList(), Formatting.Indented);
         File.WriteAllText(Path.Combine(outputPath, "parsed_buildings.json"), buildingsJson);
         
-        Console.WriteLine($"[NativeParser] Saved to: {outputPath}");
+        Log.Debug($"Saved to: {outputPath}");
     }
 }
 

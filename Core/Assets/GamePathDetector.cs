@@ -10,6 +10,7 @@
 
 using Microsoft.Win32;
 using System.Text.RegularExpressions;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Assets;
 
@@ -20,7 +21,7 @@ public static class GamePathDetector
     
     public static string? DetectGamePath()
     {
-        Console.WriteLine("[GamePath] Searching for game installation...");
+        Log.Info("Searching for game installation...");
         
         var path = TryFromSteamRegistry();
         if (!string.IsNullOrEmpty(path)) return path;
@@ -31,7 +32,7 @@ public static class GamePathDetector
         path = TryCommonPaths();
         if (!string.IsNullOrEmpty(path)) return path;
         
-        Console.WriteLine("[GamePath] Could not auto-detect game path");
+        Log.Warn("Could not auto-detect game path");
         return null;
     }
     
@@ -45,7 +46,7 @@ public static class GamePathDetector
                 var installLocation = key.GetValue("InstallLocation") as string;
                 if (!string.IsNullOrEmpty(installLocation) && ValidateGamePath(installLocation))
                 {
-                    Console.WriteLine($"[GamePath] Found via registry: {installLocation}");
+                    Log.Info($"Found via registry: {installLocation}");
                     return installLocation;
                 }
             }
@@ -56,14 +57,14 @@ public static class GamePathDetector
                 var installLocation = key64.GetValue("InstallLocation") as string;
                 if (!string.IsNullOrEmpty(installLocation) && ValidateGamePath(installLocation))
                 {
-                    Console.WriteLine($"[GamePath] Found via registry (64-bit): {installLocation}");
+                    Log.Info($"Found via registry (64-bit): {installLocation}");
                     return installLocation;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GamePath] Registry search failed: {ex.Message}");
+            Log.Debug($"Registry search failed: {ex.Message}");
         }
         
         return null;
@@ -79,7 +80,7 @@ public static class GamePathDetector
             var libraryFoldersPath = Path.Combine(steamPath, "steamapps", "libraryfolders.vdf");
             if (!File.Exists(libraryFoldersPath))
             {
-                Console.WriteLine("[GamePath] libraryfolders.vdf not found");
+                Log.Debug("libraryfolders.vdf not found");
                 return null;
             }
             
@@ -93,14 +94,14 @@ public static class GamePathDetector
                 var gamePath = Path.Combine(libPath, "steamapps", "common", GAME_NAME);
                 if (ValidateGamePath(gamePath))
                 {
-                    Console.WriteLine($"[GamePath] Found in Steam library: {gamePath}");
+                    Log.Info($"Found in Steam library: {gamePath}");
                     return gamePath;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[GamePath] Steam library search failed: {ex.Message}");
+            Log.Debug($"Steam library search failed: {ex.Message}");
         }
         
         return null;
@@ -191,7 +192,7 @@ public static class GamePathDetector
         {
             if (ValidateGamePath(path))
             {
-                Console.WriteLine($"[GamePath] Found at common path: {path}");
+                Log.Info($"Found at common path: {path}");
                 return path;
             }
         }

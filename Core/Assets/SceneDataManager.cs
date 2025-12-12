@@ -8,6 +8,7 @@
 // Commercial use requires explicit written permission from the authors.
 // -----------------------------------------------------------------------
 
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Assets;
@@ -53,7 +54,7 @@ public class SceneDataManager
         LoadBuildings(Path.Combine(dataPath, "buildings.json"));
         LoadParsedBuildings(Path.Combine(parsedPath, "parsed_buildings.json"));
         
-        Console.WriteLine($"[SceneData] Loaded: {_scenes.Count} scenes, {_extractPoints.Count} extracts, {_doors.Count} doors, {_weapons.Count} weapons, {_items.Count} items, {_aiTypes.Count} AI types, {_buildings.Count} buildings");
+        Log.Info($"Loaded: {_scenes.Count} scenes, {_extractPoints.Count} extracts, {_doors.Count} doors, {_weapons.Count} weapons, {_items.Count} items, {_aiTypes.Count} AI types, {_buildings.Count} buildings");
     }
     
     public ParsedSceneData? GetScene(string sceneId) => _scenes.GetValueOrDefault(sceneId);
