@@ -73,8 +73,7 @@ public class GameDataExtractor
                     var bytes = File.ReadAllBytes(levelPath);
                     var strings = ExtractStrings(bytes, 5, 80);
                     
-                    var levelName = strings.FirstOrDefault(s => 
-                        s.Contains("Level_") || s.Contains("Scene_") || s.Contains("Map_"));
+                    var levelName = strings.FirstOrDefault(s => IsValidSceneName(s));
                     
                     if (!string.IsNullOrEmpty(levelName))
                     {
@@ -102,17 +101,13 @@ public class GameDataExtractor
                 
                 foreach (var str in strings)
                 {
-                    if ((str.Contains("Level_") || str.Contains("Scene_")) && 
-                        !str.Contains(".") && !str.Contains("/") && str.Length < 60)
+                    if (IsValidSceneName(str) && !Scenes.ContainsKey(str))
                     {
-                        if (!Scenes.ContainsKey(str))
+                        Scenes[str] = new SceneInfo
                         {
-                            Scenes[str] = new SceneInfo
-                            {
-                                SceneId = str,
-                                BuildIndex = -1
-                            };
-                        }
+                            SceneId = str,
+                            BuildIndex = -1
+                        };
                     }
                 }
             }
@@ -309,6 +304,28 @@ public class GameDataExtractor
         var excludes = new[] { "material", "shader", "atlas", "texture", "font", "sprite", 
                                "script", "handler", "manager", "controller", "fx", "effect" };
         return !excludes.Any(e => lower.Contains(e));
+    }
+    
+    private bool IsValidSceneName(string str)
+    {
+        if (string.IsNullOrWhiteSpace(str)) return false;
+        if (str.Length < 4 || str.Length > 60) return false;
+        if (str.Contains(".") || str.Contains("/") || str.Contains("\\")) return false;
+        if (str.Contains("<") || str.Contains(">") || str.Contains("(")) return false;
+        if (str.All(char.IsDigit)) return false;
+        if (str.StartsWith("m_") || str.StartsWith("k__") || str.StartsWith("_")) return false;
+        
+        var lower = str.ToLower();
+        
+        var scenePatterns = new[] { "level", "scene", "map", "base_", "area", "zone", 
+                                     "startup", "mainmenu", "loading", "intro" };
+        if (!scenePatterns.Any(p => lower.Contains(p))) return false;
+        
+        var excludes = new[] { "material", "shader", "texture", "script", "prefab", 
+                               "controller", "manager", "handler", "component", "asset" };
+        if (excludes.Any(e => lower.Contains(e))) return false;
+        
+        return true;
     }
     
     private bool IsWeaponName(string lower) =>
