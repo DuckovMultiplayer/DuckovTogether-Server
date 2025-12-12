@@ -250,7 +250,14 @@ public enum ItemCategory
     Food,
     Key,
     Quest,
-    Misc
+    Misc,
+    Throwable,
+    Consumable,
+    Material,
+    Tool,
+    Attachment,
+    Container,
+    Currency
 }
 
 public class ItemDefinition
