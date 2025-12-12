@@ -19,6 +19,7 @@ struct PlayerState {
     float last_x, last_y, last_z;
     uint64_t last_position_time;
     float last_health;
+    float max_health;
     
     uint32_t last_sequence;
     uint64_t last_packet_time;
@@ -30,6 +31,26 @@ struct PlayerState {
     float max_speed;
     float max_damage;
     uint32_t rate_limit;
+    
+    uint64_t last_fire_time;
+    uint32_t fire_count_per_second;
+    uint64_t fire_window_start;
+    
+    float position_history_x[10];
+    float position_history_y[10];
+    float position_history_z[10];
+    uint64_t position_history_time[10];
+    int position_history_index;
+    
+    uint32_t item_pickup_count;
+    uint64_t item_pickup_window_start;
+    
+    bool is_sprinting;
+    bool is_in_vehicle;
+    bool is_dead;
+    float accumulated_damage_dealt;
+    float accumulated_damage_taken;
+    uint64_t damage_window_start;
 };
 
 std::unordered_map<uint32_t, PlayerState> g_players;
@@ -38,11 +59,18 @@ uint8_t g_server_key[64];
 uint32_t g_server_key_len = 0;
 bool g_initialized = false;
 
-const float DEFAULT_MAX_SPEED = 15.0f;
-const float DEFAULT_MAX_DAMAGE = 500.0f;
-const uint32_t DEFAULT_RATE_LIMIT = 100;
-const float POSITION_TOLERANCE = 0.5f;
-const uint64_t TIMESTAMP_TOLERANCE_MS = 5000;
+const float DEFAULT_MAX_SPEED = 12.0f;
+const float SPRINT_MAX_SPEED = 18.0f;
+const float VEHICLE_MAX_SPEED = 50.0f;
+const float DEFAULT_MAX_DAMAGE = 300.0f;
+const float HEADSHOT_MULTIPLIER = 4.0f;
+const uint32_t DEFAULT_RATE_LIMIT = 60;
+const float POSITION_TOLERANCE = 0.3f;
+const uint64_t TIMESTAMP_TOLERANCE_MS = 3000;
+const float MAX_TELEPORT_DISTANCE = 50.0f;
+const float MIN_FIRE_INTERVAL_MS = 50.0f;
+const uint32_t MAX_VIOLATIONS_BEFORE_BAN = 10;
+const float GRAVITY_CHECK_THRESHOLD = 2.0f;
 
 uint64_t get_current_time_ms() {
     auto now = std::chrono::system_clock::now();
@@ -138,6 +166,7 @@ DUCKOV_API int32_t dg_register_player(uint32_t player_id, const uint8_t* session
     state.last_x = state.last_y = state.last_z = 0;
     state.last_position_time = get_current_time_ms();
     state.last_health = 100.0f;
+    state.max_health = 100.0f;
     state.last_sequence = 0;
     state.last_packet_time = 0;
     state.packet_count_per_second = 0;
@@ -145,6 +174,23 @@ DUCKOV_API int32_t dg_register_player(uint32_t player_id, const uint8_t* session
     state.max_speed = DEFAULT_MAX_SPEED;
     state.max_damage = DEFAULT_MAX_DAMAGE;
     state.rate_limit = DEFAULT_RATE_LIMIT;
+    
+    state.last_fire_time = 0;
+    state.fire_count_per_second = 0;
+    state.fire_window_start = get_current_time_ms();
+    state.position_history_index = 0;
+    memset(state.position_history_x, 0, sizeof(state.position_history_x));
+    memset(state.position_history_y, 0, sizeof(state.position_history_y));
+    memset(state.position_history_z, 0, sizeof(state.position_history_z));
+    memset(state.position_history_time, 0, sizeof(state.position_history_time));
+    state.item_pickup_count = 0;
+    state.item_pickup_window_start = get_current_time_ms();
+    state.is_sprinting = false;
+    state.is_in_vehicle = false;
+    state.is_dead = false;
+    state.accumulated_damage_dealt = 0;
+    state.accumulated_damage_taken = 0;
+    state.damage_window_start = get_current_time_ms();
     
     g_players[player_id] = state;
     return 1;
@@ -384,6 +430,131 @@ DUCKOV_API void dg_decrypt_data(uint8_t* data, uint32_t len, const uint8_t* key,
     for (uint32_t i = 0; i < len; i++) {
         data[i] = ((data[i] >> 3) | (data[i] << 5));
         data[i] ^= key[i % key_len];
+    }
+}
+
+DUCKOV_API int32_t dg_validate_weapon_fire(uint32_t player_id, int32_t weapon_id, float fire_rate) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    
+    auto it = g_players.find(player_id);
+    if (it == g_players.end()) return 0;
+    
+    auto& player = it->second;
+    uint64_t now = get_current_time_ms();
+    
+    if (now - player.fire_window_start > 1000) {
+        player.fire_count_per_second = 0;
+        player.fire_window_start = now;
+    }
+    
+    float min_interval = (fire_rate > 0) ? (1000.0f / fire_rate) : MIN_FIRE_INTERVAL_MS;
+    uint64_t time_since_last = now - player.last_fire_time;
+    
+    if (time_since_last < (uint64_t)(min_interval * 0.8f) && player.last_fire_time > 0) {
+        char details[256];
+        snprintf(details, sizeof(details), "Fire rate hack: interval=%llums, min=%0.fms", 
+                 (unsigned long long)time_since_last, min_interval);
+        add_violation(player, VIOLATION_RATE_LIMIT, 2, details);
+        return 0;
+    }
+    
+    player.fire_count_per_second++;
+    player.last_fire_time = now;
+    
+    return 1;
+}
+
+DUCKOV_API int32_t dg_validate_item_pickup(uint32_t player_id, int32_t item_id, float distance) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    
+    auto it = g_players.find(player_id);
+    if (it == g_players.end()) return 0;
+    
+    auto& player = it->second;
+    uint64_t now = get_current_time_ms();
+    
+    const float MAX_PICKUP_DISTANCE = 5.0f;
+    if (distance > MAX_PICKUP_DISTANCE) {
+        char details[256];
+        snprintf(details, sizeof(details), "Item pickup distance: %.2f (max: %.2f)", distance, MAX_PICKUP_DISTANCE);
+        add_violation(player, VIOLATION_POSITION_HACK, 2, details);
+        return 0;
+    }
+    
+    if (now - player.item_pickup_window_start > 1000) {
+        player.item_pickup_count = 0;
+        player.item_pickup_window_start = now;
+    }
+    
+    const uint32_t MAX_PICKUPS_PER_SECOND = 10;
+    player.item_pickup_count++;
+    if (player.item_pickup_count > MAX_PICKUPS_PER_SECOND) {
+        add_violation(player, VIOLATION_RATE_LIMIT, 1, "Item pickup rate exceeded");
+        return 0;
+    }
+    
+    return 1;
+}
+
+DUCKOV_API void dg_set_player_state(uint32_t player_id, int32_t state_flags) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto it = g_players.find(player_id);
+    if (it != g_players.end()) {
+        it->second.is_sprinting = (state_flags & 1) != 0;
+        it->second.is_in_vehicle = (state_flags & 2) != 0;
+        it->second.is_dead = (state_flags & 4) != 0;
+        
+        if (it->second.is_sprinting) {
+            it->second.max_speed = SPRINT_MAX_SPEED;
+        } else if (it->second.is_in_vehicle) {
+            it->second.max_speed = VEHICLE_MAX_SPEED;
+        } else {
+            it->second.max_speed = DEFAULT_MAX_SPEED;
+        }
+    }
+}
+
+DUCKOV_API int32_t dg_should_ban_player(uint32_t player_id) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto it = g_players.find(player_id);
+    if (it == g_players.end()) return 0;
+    
+    uint32_t severe_count = 0;
+    for (const auto& v : it->second.violations) {
+        if (v.severity >= 3) severe_count++;
+    }
+    
+    return (it->second.violations.size() >= MAX_VIOLATIONS_BEFORE_BAN || severe_count >= 3) ? 1 : 0;
+}
+
+DUCKOV_API int32_t dg_validate_teleport(uint32_t player_id, float from_x, float from_y, float from_z,
+                                         float to_x, float to_y, float to_z, int32_t is_allowed) {
+    if (is_allowed) return 1;
+    
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto it = g_players.find(player_id);
+    if (it == g_players.end()) return 0;
+    
+    float dx = to_x - from_x;
+    float dy = to_y - from_y;
+    float dz = to_z - from_z;
+    float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+    
+    if (dist > MAX_TELEPORT_DISTANCE) {
+        char details[256];
+        snprintf(details, sizeof(details), "Teleport: %.2f units", dist);
+        add_violation(it->second, VIOLATION_POSITION_HACK, 3, details);
+        return 0;
+    }
+    
+    return 1;
+}
+
+DUCKOV_API void dg_set_max_health(uint32_t player_id, float max_health) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    auto it = g_players.find(player_id);
+    if (it != g_players.end()) {
+        it->second.max_health = max_health;
     }
 }
 

@@ -73,6 +73,14 @@ DUCKOV_API uint32_t dg_compute_checksum(const uint8_t* data, uint32_t len);
 DUCKOV_API void dg_encrypt_data(uint8_t* data, uint32_t len, const uint8_t* key, uint32_t key_len);
 DUCKOV_API void dg_decrypt_data(uint8_t* data, uint32_t len, const uint8_t* key, uint32_t key_len);
 
+DUCKOV_API int32_t dg_validate_weapon_fire(uint32_t player_id, int32_t weapon_id, float fire_rate);
+DUCKOV_API int32_t dg_validate_item_pickup(uint32_t player_id, int32_t item_id, float distance);
+DUCKOV_API void dg_set_player_state(uint32_t player_id, int32_t state_flags);
+DUCKOV_API int32_t dg_should_ban_player(uint32_t player_id);
+DUCKOV_API int32_t dg_validate_teleport(uint32_t player_id, float from_x, float from_y, float from_z,
+                                         float to_x, float to_y, float to_z, int32_t is_allowed);
+DUCKOV_API void dg_set_max_health(uint32_t player_id, float max_health);
+
 #ifdef __cplusplus
 }
 #endif
