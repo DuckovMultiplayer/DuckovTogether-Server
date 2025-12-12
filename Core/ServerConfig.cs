@@ -57,7 +57,8 @@ public class ServerConfig
         "Level_HiddenWarehouse",
         "Level_JLab_2",
         "Level_stormZone_1",
-        "Level_DemoChallenge_Main"
+        "Level_DemoChallenge_Main",
+        "Level_GroundZero_Main"
     };
     
     public static ServerConfig Load(string path)
