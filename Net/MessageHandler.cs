@@ -258,12 +258,14 @@ public class MessageHandler
     
     private void HandleMessage(int peerId, NetPacketReader reader, byte channel)
     {
-        if (reader.AvailableBytes < 1) return;
-        
-        var msgType = (MessageType)reader.GetByte();
-        
-        switch (msgType)
+        try
         {
+            if (reader.AvailableBytes < 1) return;
+            
+            var msgType = (MessageType)reader.GetByte();
+            
+            switch (msgType)
+            {
             case MessageType.ClientStatus:
                 HandleClientStatus(peerId, reader);
                 break;
@@ -309,6 +311,11 @@ public class MessageHandler
             default:
                 BroadcastRawMessage(peerId, reader, channel);
                 break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Error] HandleMessage: {ex.Message}");
         }
     }
     
@@ -527,9 +534,10 @@ public class MessageHandler
     {
         try
         {
-            if (reader.AvailableBytes < 10)
+            var totalBytes = reader.AvailableBytes;
+            if (totalBytes < 10)
             {
-                Console.WriteLine($"[ClientStatus] Not enough bytes: {reader.AvailableBytes}");
+                Console.WriteLine($"[ClientStatus] Not enough bytes: {totalBytes}");
                 return;
             }
             
@@ -545,23 +553,35 @@ public class MessageHandler
             var rotW = reader.GetFloat();
             var sceneId = reader.GetString();
             
-            if (reader.AvailableBytes >= 4)
+            var remainingAfterCore = reader.AvailableBytes;
+            
+            if (remainingAfterCore >= 4)
             {
                 var equipCount = reader.GetInt();
-                for (int i = 0; i < equipCount && reader.AvailableBytes >= 4; i++)
+                if (equipCount > 0 && equipCount < 100)
                 {
-                    reader.GetInt();
-                    if (reader.AvailableBytes >= 1) reader.GetString();
+                    for (int i = 0; i < equipCount; i++)
+                    {
+                        if (reader.AvailableBytes < 4) break;
+                        reader.GetInt();
+                        if (reader.AvailableBytes < 1) break;
+                        reader.GetString();
+                    }
                 }
             }
             
             if (reader.AvailableBytes >= 4)
             {
                 var weaponCount = reader.GetInt();
-                for (int i = 0; i < weaponCount && reader.AvailableBytes >= 4; i++)
+                if (weaponCount > 0 && weaponCount < 100)
                 {
-                    reader.GetInt();
-                    if (reader.AvailableBytes >= 1) reader.GetString();
+                    for (int i = 0; i < weaponCount; i++)
+                    {
+                        if (reader.AvailableBytes < 4) break;
+                        reader.GetInt();
+                        if (reader.AvailableBytes < 1) break;
+                        reader.GetString();
+                    }
                 }
             }
             
@@ -577,7 +597,7 @@ public class MessageHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleClientStatus: {ex.Message}");
+            Console.WriteLine($"[Error] HandleClientStatus: {ex.Message} at {ex.StackTrace?.Split('\n').FirstOrDefault()}");
         }
     }
     
