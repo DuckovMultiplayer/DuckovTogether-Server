@@ -28,6 +28,16 @@ public class ServerConfig
     public string CertPath { get; set; } = "";
     public string KeyPath { get; set; } = "";
     public string DefaultScene { get; set; } = "Base_SceneV2";
+    public List<string> KnownScenes { get; set; } = new()
+    {
+        "Startup",
+        "MainMenu", 
+        "Base_SceneV2",
+        "Level_Factory",
+        "Level_Woods",
+        "Level_Customs",
+        "Level_Reserve"
+    };
     
     public static ServerConfig Load(string path)
     {

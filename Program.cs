@@ -86,6 +86,9 @@ class Program
         {
             Console.WriteLine($"[Assets] Game path: {gamePath}");
             Console.WriteLine("[Assets] Loading game resources...");
+            
+            Core.Assets.GameDataExtractor.Instance.LoadKnownScenes(config.KnownScenes);
+            
             if (UnityAssetReader.Instance.Initialize(gamePath))
             {
                 UnityAssetReader.Instance.SaveExtractedData(config.ExtractedDataPath);

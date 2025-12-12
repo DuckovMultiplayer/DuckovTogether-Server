@@ -33,6 +33,24 @@ public class GameDataExtractor
         "armor", "vest", "helmet", "plate", "kevlar", "rig", "carrier"
     };
     
+    public void LoadKnownScenes(List<string> knownScenes)
+    {
+        if (knownScenes == null || knownScenes.Count == 0) return;
+        
+        foreach (var sceneName in knownScenes)
+        {
+            if (!string.IsNullOrWhiteSpace(sceneName) && !Scenes.ContainsKey(sceneName))
+            {
+                Scenes[sceneName] = new SceneInfo
+                {
+                    SceneId = sceneName,
+                    BuildIndex = -1
+                };
+            }
+        }
+        Console.WriteLine($"[DataExtractor] Loaded {knownScenes.Count} known scenes from config");
+    }
+    
     public bool Extract(string gamePath)
     {
         var dataPath = Path.Combine(gamePath, "Duckov_Data");
