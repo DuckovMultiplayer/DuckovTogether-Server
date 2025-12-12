@@ -461,6 +461,7 @@ public class MessageHandler
             
             if (requestTypes.Contains(baseMsg.type))
             {
+                Console.WriteLine($"[JSON] Received {baseMsg.type} from peer {peerId}");
                 ClientRequestHandler.Instance.HandleJsonRequest(peerId, json, peer!);
                 
                 if (baseMsg.type == "clientStatus" || baseMsg.type == "updateClientStatus")
