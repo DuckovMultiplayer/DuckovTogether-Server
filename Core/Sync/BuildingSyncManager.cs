@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using DuckovTogether.Core.Save;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -24,7 +25,7 @@ public class BuildingSyncManager
     public void Initialize(Action<string>? broadcastJson = null)
     {
         _broadcastJson = broadcastJson;
-        Console.WriteLine("[BuildingSync] Initialized");
+        Log.Info("BuildingSync initialized");
     }
     
     public void SetBroadcastHandler(Action<string> handler)
@@ -39,7 +40,7 @@ public class BuildingSyncManager
     
     public void InitializeOld()
     {
-        Console.WriteLine("[BuildingSync] Initialized");
+        Log.Info("BuildingSync initialized");
     }
     
     public void OnBuildingPlaced(string playerId, string buildingId, string buildingType, 
@@ -51,7 +52,7 @@ public class BuildingSyncManager
             
             if (world.Buildings.ContainsKey(buildingId))
             {
-                Console.WriteLine($"[BuildingSync] Building {buildingId} already exists");
+                Log.Debug($"Building {buildingId} already exists");
                 return;
             }
             

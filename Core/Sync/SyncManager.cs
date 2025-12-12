@@ -12,6 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -35,7 +36,7 @@ public class SyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[SyncManager] Initialized");
+        Log.Info("SyncManager initialized");
     }
     
     public void Update()
@@ -142,7 +143,7 @@ public class SyncManager
         };
         
         SendJsonToPeer(peer, data);
-        Console.WriteLine($"[SyncManager] Sent loot sync to {peer.EndPoint}: {containers.Count} containers");
+        Log.Debug($"Sent loot sync to {peer.EndPoint}: {containers.Count} containers");
     }
     
     public void BroadcastPlayerList()
@@ -189,7 +190,7 @@ public class SyncManager
         };
         
         BroadcastJson(data);
-        Console.WriteLine($"[SyncManager] Broadcast force scene load: {sceneId}");
+        Log.Info($"Broadcast force scene load: {sceneId}");
     }
     
     public void SendSetId(NetPeer peer, string networkId)

@@ -12,6 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -33,7 +34,7 @@ public class ItemAuthorityManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[ItemAuthority] Initialized");
+        Log.Info("ItemAuthority initialized");
     }
     
     public void RegisterContainer(int containerId, Vector3 position, string containerType, List<LootItemState> items)
@@ -47,7 +48,7 @@ public class ItemAuthorityManager
             CreatedTime = DateTime.Now
         };
         _lootContainers[containerId] = container;
-        Console.WriteLine($"[ItemAuthority] Registered container {containerId} with {items.Count} items");
+        Log.Debug($"Registered container {containerId} with {items.Count} items");
     }
     
     public int CreateContainer(Vector3 position, string containerType)
@@ -127,7 +128,7 @@ public class ItemAuthorityManager
             };
             
             BroadcastJson(pickupData);
-            Console.WriteLine($"[ItemAuthority] Player {peerId} picked up {item.ItemId} x{item.Count} from container {containerId}");
+            Log.Debug($"Player {peerId} picked up {item.ItemId} x{item.Count} from container {containerId}");
         }
         
         var lockKey = containerId * 1000 + slotIndex;
@@ -194,7 +195,7 @@ public class ItemAuthorityManager
         };
         
         BroadcastJson(dropData);
-        Console.WriteLine($"[ItemAuthority] Player {peerId} dropped {itemId} x{count} at {position}");
+        Log.Debug($"Player {peerId} dropped {itemId} x{count} at {position}");
     }
     
     private int CreateDroppedItemContainer(Vector3 position, string itemId, int count)
@@ -268,7 +269,7 @@ public class ItemAuthorityManager
     {
         _lootContainers.Clear();
         _transferLocks.Clear();
-        Console.WriteLine("[ItemAuthority] Cleared all containers for scene change");
+        Log.Debug("Cleared all containers for scene change");
     }
     
     private void BroadcastJson(object data)

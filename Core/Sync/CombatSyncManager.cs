@@ -12,6 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.Assets;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -27,7 +28,7 @@ public class CombatSyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[CombatSync] Initialized");
+        Log.Info("CombatSync initialized");
     }
     
     public bool ValidateWeapon(int weaponId, out WeaponData? weaponData)
@@ -50,7 +51,7 @@ public class CombatSyncManager
         if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
         {
             error = validation.ErrorMessage;
-            Console.WriteLine($"[CombatSync] Invalid weapon fire by player {shooterId}: {error}");
+            Log.Warn($"Invalid weapon fire by player {shooterId}: {error}");
             return false;
         }
         

@@ -12,6 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -31,12 +32,12 @@ public class DeathSyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[DeathSync] Initialized");
+        Log.Info("DeathSync initialized");
     }
     
     public void OnPlayerDeath(int peerId, int killerId, string cause, Vector3 deathPosition)
     {
-        Console.WriteLine($"[DeathSync] Player {peerId} killed by {killerId}, cause: {cause}");
+        Log.Info($"Player {peerId} killed by {killerId}, cause: {cause}");
         
         var lootUid = _nextLootUid++;
         var deathState = new PlayerDeathState
@@ -68,7 +69,7 @@ public class DeathSyncManager
     
     public void OnAIDeath(int aiId, int killerId, Vector3 deathPosition, string aiType)
     {
-        Console.WriteLine($"[DeathSync] AI {aiId} ({aiType}) killed by {killerId}");
+        Log.Debug($"AI {aiId} ({aiType}) killed by {killerId}");
         
         var lootUid = _nextLootUid++;
         
@@ -139,7 +140,7 @@ public class DeathSyncManager
         };
         
         BroadcastJson(spawnData);
-        Console.WriteLine($"[DeathSync] Spawned player loot box: lootUid={lootUid}, player={playerName}");
+        Log.Debug($"Spawned player loot box: lootUid={lootUid}, player={playerName}");
     }
     
     private List<LootItemState> GenerateLootForAI(string aiType)
@@ -155,7 +156,7 @@ public class DeathSyncManager
     
     public void OnPlayerRespawn(int peerId, Vector3 spawnPosition)
     {
-        Console.WriteLine($"[DeathSync] Player {peerId} respawning at {spawnPosition}");
+        Log.Debug($"Player {peerId} respawning at {spawnPosition}");
         
         _playerDeaths.Remove(peerId);
         
@@ -201,7 +202,7 @@ public class DeathSyncManager
     {
         _deadLootBoxes.Clear();
         _playerDeaths.Clear();
-        Console.WriteLine($"[DeathSync] Cleared all loot boxes for scene change: {sceneId}");
+        Log.Debug($"Cleared all loot boxes for scene change: {sceneId}");
     }
     
     private void BroadcastJson(object data)

@@ -13,6 +13,7 @@ using DuckovTogether.Core.Assets;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -31,7 +32,7 @@ public class ItemSyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[ItemSync] Initialized");
+        Log.Info("ItemSync initialized");
     }
     
     public bool ValidateItem(int itemTypeId, out string? itemName)
@@ -54,7 +55,7 @@ public class ItemSyncManager
         if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
         {
             error = validation.ErrorMessage;
-            Console.WriteLine($"[ItemSync] Invalid item pickup by player {playerId}: {error}");
+            Log.Warn($"Invalid item pickup by player {playerId}: {error}");
             return false;
         }
         
@@ -71,7 +72,7 @@ public class ItemSyncManager
         if (!validation.IsValid && GameDataValidator.Instance.IsDataAvailable)
         {
             error = validation.ErrorMessage;
-            Console.WriteLine($"[ItemSync] Invalid item drop by player {playerId}: {error}");
+            Log.Warn($"Invalid item drop by player {playerId}: {error}");
             return false;
         }
         

@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using DuckovTogether.Core.Assets;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Sync;
 
@@ -22,7 +23,7 @@ public class GameDataValidator
     public void Initialize()
     {
         _initialized = SceneDataManager.Instance.Scenes.Count > 0;
-        Console.WriteLine($"[Validator] Initialized, data available: {_initialized}");
+        Log.Info($"Validator initialized, data available: {_initialized}");
     }
     
     public bool IsDataAvailable => _initialized;

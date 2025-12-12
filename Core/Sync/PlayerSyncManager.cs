@@ -11,6 +11,7 @@
 using System.Numerics;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -35,7 +36,7 @@ public class PlayerSyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[PlayerSync] Initialized");
+        Log.Info("PlayerSync initialized");
     }
     
     public void Update()
@@ -153,7 +154,7 @@ public class PlayerSyncManager
         };
         
         BroadcastJsonExcept(peerId, data);
-        Console.WriteLine($"[PlayerSync] Player joined: {playerName} (ID: {peerId})");
+        Log.Info($"Player joined: {playerName} (ID: {peerId})");
     }
     
     public void SendExistingPlayersToNewPlayer(int newPeerId)

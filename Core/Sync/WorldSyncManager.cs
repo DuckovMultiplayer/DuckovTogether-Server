@@ -12,6 +12,7 @@ using System.Numerics;
 using DuckovTogether.Core.Assets;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -43,7 +44,7 @@ public class WorldSyncManager
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[WorldSync] Initialized");
+        Log.Info("WorldSync initialized");
     }
     
     public void Update(float deltaTime)
@@ -93,7 +94,7 @@ public class WorldSyncManager
         };
         
         BroadcastJson(data);
-        Console.WriteLine($"[WorldSync] Scene loaded: {sceneId}");
+        Log.Info($"Scene loaded: {sceneId}");
     }
     
     public void OnDoorInteract(int doorId, bool isOpen, int playerId)
@@ -134,7 +135,7 @@ public class WorldSyncManager
         if (!validation.IsValid)
         {
             error = validation.ErrorMessage;
-            Console.WriteLine($"[WorldSync] Extract validation failed for player {playerId}: {error}");
+            Log.Warn($"Extract validation failed for player {playerId}: {error}");
             return false;
         }
         
@@ -160,7 +161,7 @@ public class WorldSyncManager
         };
         
         BroadcastJson(data);
-        Console.WriteLine($"[WorldSync] Player {playerId} started extracting at {extractPointId}");
+        Log.Debug($"Player {playerId} started extracting at {extractPointId}");
         return true;
     }
     
@@ -193,7 +194,7 @@ public class WorldSyncManager
                 timestamp = DateTime.Now.Ticks
             };
             BroadcastJson(data);
-            Console.WriteLine($"[WorldSync] Player {playerId} extracted at {state.ExtractPointId}");
+            Log.Info($"Player {playerId} extracted at {state.ExtractPointId}");
         }
     }
     
