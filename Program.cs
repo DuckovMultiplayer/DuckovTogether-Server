@@ -42,7 +42,7 @@ class Program
         if (!File.Exists(configPath))
         {
             config.Save(configPath);
-            Console.WriteLine($"[Config] Created default config: {configPath}");
+            Log.Info($"Created default config: {configPath}");
         }
         
         foreach (var arg in args)
@@ -71,12 +71,11 @@ class Program
             }
         }
         
-        Console.WriteLine($"[Config] Port: {config.Port}");
-        Console.WriteLine($"[Config] Max Players: {config.MaxPlayers}");
-        Console.WriteLine($"[Config] Server Name: {config.ServerName}");
-        Console.WriteLine($"[Config] Tick Rate: {config.TickRate} Hz");
-        Console.WriteLine($"[Config] Game Path: {config.GamePath}");
-        Console.WriteLine();
+        Log.Info($"Port: {config.Port}");
+        Log.Info($"Max Players: {config.MaxPlayers}");
+        Log.Info($"Server Name: {config.ServerName}");
+        Log.Info($"Tick Rate: {config.TickRate} Hz");
+        Log.Info($"Game Path: {config.GamePath}");
         
         var gamePath = config.GamePath;
         if (string.IsNullOrEmpty(gamePath))
@@ -86,15 +85,15 @@ class Program
         
         if (!string.IsNullOrEmpty(gamePath))
         {
-            Console.WriteLine($"[Assets] Game path: {gamePath}");
-            Console.WriteLine("[Assets] Loading game resources...");
+            Log.Info($"Game path: {gamePath}");
+            Log.Info("Loading game resources...");
             
             Core.Assets.GameDataExtractor.Instance.LoadKnownScenes(config.KnownScenes);
             
             if (UnityAssetReader.Instance.Initialize(gamePath))
             {
                 UnityAssetReader.Instance.SaveExtractedData(config.ExtractedDataPath);
-                Console.WriteLine("[Assets] Game resources loaded successfully");
+                Log.Info("Game resources loaded successfully");
                 
                 var dataPath = Path.Combine(AppContext.BaseDirectory, "Data");
                 if (Directory.Exists(dataPath))
@@ -112,15 +111,14 @@ class Program
             }
             else
             {
-                Console.WriteLine("[Assets] Warning: Failed to load game resources, running in proxy mode");
+                Log.Warn("Failed to load game resources, running in proxy mode");
             }
         }
         else
         {
-            Console.WriteLine("[Assets] Could not find game installation");
-            Console.WriteLine("[Assets] Set 'GamePath' in server_config.json or use --game-path=<path>");
+            Log.Warn("Could not find game installation");
+            Log.Warn("Set 'GamePath' in server_config.json or use --game-path=<path>");
         }
-        Console.WriteLine();
         
         ValidationService.Instance.Initialize(config.GameKey);
         GameServer.Instance.Initialize();
@@ -130,11 +128,10 @@ class Program
         
         PluginManager.Instance.Initialize(_netService, AppContext.BaseDirectory);
         PluginManager.Instance.LoadPlugins();
-        Console.WriteLine();
         
         if (!_netService.Start())
         {
-            Console.WriteLine("[Error] Failed to start server. Press any key to exit...");
+            Log.Fatal("Failed to start server. Press any key to exit...");
             Console.ReadKey();
             return;
         }
@@ -143,7 +140,7 @@ class Program
         {
             e.Cancel = true;
             _running = false;
-            Console.WriteLine("\n[Server] Shutting down...");
+            Log.Info("Shutting down...");
         };
         
         var inputThread = new Thread(InputLoop);
@@ -174,7 +171,7 @@ class Program
         GameServer.Instance.Shutdown();
         ValidationService.Instance.Shutdown();
         _netService.Stop();
-        Console.WriteLine("[Server] Goodbye!");
+        Log.Info("Goodbye!"); Log.Shutdown();
     }
     
     static void InputLoop()
@@ -187,89 +184,60 @@ class Program
             switch (input)
             {
                 case "help":
-                    Console.WriteLine("Commands:");
-                    Console.WriteLine("  status  - Show server status");
-                    Console.WriteLine("  players - List connected players");
-                    Console.WriteLine("  kick <id> - Kick a player");
-                    Console.WriteLine("  save    - Save all data");
-                    Console.WriteLine("  world   - Show world state");
-                    Console.WriteLine("  scene <id> - Change scene");
-                    Console.WriteLine("  plugins - List loaded plugins");
-                    Console.WriteLine("  quit    - Stop the server");
+                    Log.Info("Commands: status, players, kick <id>, save, world, scene <id>, plugins, quit");
                     break;
                     
                 case "plugins":
                     var pluginList = PluginManager.Instance.GetPluginList().ToList();
                     if (pluginList.Count == 0)
                     {
-                        Console.WriteLine("[Plugins] No plugins loaded");
+                        Log.Info("No plugins loaded");
                     }
                     else
                     {
-                        Console.WriteLine($"[Plugins] Loaded {pluginList.Count} plugins:");
-                        foreach (var p in pluginList)
-                        {
-                            Console.WriteLine($"  - {p}");
-                        }
+                        Log.Info($"Loaded {pluginList.Count} plugins: {string.Join(", ", pluginList)}");
                     }
                     break;
                     
                 case "status":
-                    Console.WriteLine($"[Status] Running: {_netService?.IsRunning}");
-                    Console.WriteLine($"[Status] Players: {_netService?.PlayerCount}");
+                    Log.Info($"Running: {_netService?.IsRunning}, Players: {_netService?.PlayerCount}");
                     break;
                     
                 case "players":
                     var players = _netService?.GetAllPlayers();
                     if (players == null || !players.Any())
                     {
-                        Console.WriteLine("[Players] No players connected");
+                        Log.Info("No players connected");
                     }
                     else
                     {
-                        Console.WriteLine("[Players] Connected players:");
                         foreach (var p in players)
                         {
-                            Console.WriteLine($"  [{p.PeerId}] {p.PlayerName} - {p.EndPoint} (Ping: {p.Latency}ms)");
+                            Log.Info($"[{p.PeerId}] {p.PlayerName} - {p.EndPoint} (Ping: {p.Latency}ms)");
                         }
                     }
                     break;
                     
                 case "save":
                     ServerSaveManager.Instance.SaveAll();
-                    Console.WriteLine("[Save] All data saved");
+                    Log.Info("All data saved");
                     break;
                     
                 case "world":
                     var world = GameServer.Instance.Saves.CurrentWorld;
-                    Console.WriteLine($"[World] ID: {world.WorldId}");
-                    Console.WriteLine($"[World] Scene: {world.CurrentScene}");
-                    Console.WriteLine($"[World] Day: {world.GameDay}, Time: {world.GameTime:F1}");
-                    Console.WriteLine($"[World] AI Entities: {GameServer.Instance.AI.EntityCount}");
-                    Console.WriteLine($"[World] Created: {world.CreatedAt}, LastSaved: {world.LastSaved}");
+                    Log.Info($"World: {world.WorldId}, Scene: {world.CurrentScene}, Day: {world.GameDay}, AI: {GameServer.Instance.AI.EntityCount}");
                     break;
                     
                 case "ai":
-                    Console.WriteLine($"[AI] Total entities: {GameServer.Instance.AI.EntityCount}");
+                    Log.Info($"AI entities: {GameServer.Instance.AI.EntityCount}");
                     break;
                     
                 case "data":
-                    Console.WriteLine($"[Data] Scenes: {SceneDataManager.Instance.Scenes.Count}");
-                    Console.WriteLine($"[Data] Extract Points: {SceneDataManager.Instance.ExtractPoints.Count}");
-                    Console.WriteLine($"[Data] Doors: {SceneDataManager.Instance.Doors.Count}");
-                    Console.WriteLine($"[Data] Weapons: {SceneDataManager.Instance.Weapons.Count}");
-                    Console.WriteLine($"[Data] Items: {SceneDataManager.Instance.Items.Count}");
-                    Console.WriteLine($"[Data] AI Types: {SceneDataManager.Instance.AITypes.Count}");
-                    Console.WriteLine($"[Data] Buildings: {BuildingDataExtractor.Instance.Buildings.Count}");
+                    Log.Info($"Scenes: {SceneDataManager.Instance.Scenes.Count}, Items: {SceneDataManager.Instance.Items.Count}, AI: {SceneDataManager.Instance.AITypes.Count}");
                     break;
                     
                 case "buildings":
-                    var buildings = BuildingDataExtractor.Instance.Buildings;
-                    Console.WriteLine($"[Buildings] Total: {buildings.Count}");
-                    foreach (var b in buildings.Values)
-                    {
-                        Console.WriteLine($"  - {b.BuildingId}: {b.DisplayName} [{b.Category}]");
-                    }
+                    Log.Info($"Buildings: {BuildingDataExtractor.Instance.Buildings.Count}");
                     break;
                     
                 case "quit":
@@ -295,17 +263,17 @@ class Program
                             if (peer != null)
                             {
                                 peer.Disconnect();
-                                Console.WriteLine($"[Server] Kicked player {kickId}");
+                                Log.Info($"Kicked player {kickId}");
                             }
                             else
                             {
-                                Console.WriteLine($"[Server] Player {kickId} not found");
+                                Log.Warn($"Player {kickId} not found");
                             }
                         }
                     }
                     else if (!PluginManager.Instance.TryExecuteCommand(input))
                     {
-                        Console.WriteLine($"Unknown command: {input}");
+                        Log.Warn($"Unknown command: {input}");
                     }
                     break;
             }

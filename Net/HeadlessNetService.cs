@@ -13,6 +13,7 @@ using System.Net.Sockets;
 using DuckovNet;
 using DuckovTogether.Core;
 using DuckovTogether.Core.GameLogic;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Net;
 
@@ -62,15 +63,14 @@ public class HeadlessNetService : INetEventListener
         
         if (started)
         {
-            Console.WriteLine($"[Server] Max players: {_config.MaxPlayers}");
-            Console.WriteLine("[Server] Press Ctrl+C to stop");
-            Console.WriteLine("[Server] Type 'help' for commands");
-            Console.WriteLine();
-            PrintNetworkInfo();
+            Log.Info($"Max players: {_config.MaxPlayers}");
+            Log.Info("Press Ctrl+C to stop");
+            Log.Info("Type 'help' for commands");
+                        PrintNetworkInfo();
         }
         else
         {
-            Console.WriteLine($"[Server] Failed to start on port {_config.Port}");
+            Log.Error($"Failed to start on port {_config.Port}");
         }
         
         _netManager = new NetManager(this);
@@ -100,15 +100,15 @@ public class HeadlessNetService : INetEventListener
     
     private void PrintNetworkInfo()
     {
-        Console.WriteLine("===========================================");
-        Console.WriteLine("  Connection Information");
-        Console.WriteLine("===========================================");
-        Console.WriteLine($"  Local:    127.0.0.1:{_config.Port}");
+        Log.Info("===========================================");
+        Log.Info("  Connection Information");
+        Log.Info("===========================================");
+        Log.Info($"  Local:    127.0.0.1:{_config.Port}");
         
         var lanIPs = GetLanAddresses();
         foreach (var ip in lanIPs)
         {
-            Console.WriteLine($"  LAN:      {ip}:{_config.Port}");
+            Log.Info($"  LAN:      {ip}:{_config.Port}");
         }
         
         Task.Run(async () =>
@@ -116,11 +116,10 @@ public class HeadlessNetService : INetEventListener
             var publicIP = await GetPublicIPAsync();
             if (!string.IsNullOrEmpty(publicIP))
             {
-                Console.WriteLine($"  Public:   {publicIP}:{_config.Port}");
+                Log.Info($"  Public:   {publicIP}:{_config.Port}");
             }
-            Console.WriteLine("===========================================");
-            Console.WriteLine();
-        });
+            Log.Info("===========================================");
+                    });
     }
     
     private List<string> GetLanAddresses()
@@ -171,7 +170,7 @@ public class HeadlessNetService : INetEventListener
         {
             _players.Clear();
         }
-        Console.WriteLine("[Server] Stopped");
+        Log.Info("Server stopped");
     }
     
     public void Update()
@@ -282,7 +281,7 @@ public class HeadlessNetService : INetEventListener
     
     public void OnPeerConnected(NetPeer peer)
     {
-        Console.WriteLine($"[Server] Player connected: {peer.EndPoint} (ID: {peer.Id})");
+        Log.Info($"Player connected: {peer.EndPoint} (ID: {peer.Id})");
         
         var state = new PlayerState
         {
@@ -329,13 +328,13 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(json);
             
             SendToPeer(peerId, _writer, DeliveryMethod.ReliableOrdered);
-            Console.WriteLine($"[Server] Sent server state to peer {peerId}: scene={currentScene}");
+            Log.Debug($"Sent server state to peer {peerId}: scene={currentScene}");
             
             SendWorldSync(peerId);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Server] Error sending server state: {ex.Message}");
+            Log.Error(ex, "SendServerState");
         }
     }
     
@@ -389,17 +388,17 @@ public class HeadlessNetService : INetEventListener
             _writer.Put(json);
             
             SendToPeer(peerId, _writer, DeliveryMethod.ReliableOrdered);
-            Console.WriteLine($"[Server] Sent world sync to peer {peerId}: buildings={buildingsList.Count}, loot={lootList.Count}, items={dropList.Count}");
+            Log.Debug($"Sent world sync to peer {peerId}: buildings={buildingsList.Count}, loot={lootList.Count}, items={dropList.Count}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Server] Error sending world sync: {ex.Message}");
+            Log.Error(ex, "SendWorldSync");
         }
     }
     
     public void OnPeerDisconnected(NetPeer peer, DisconnectReason reason)
     {
-        Console.WriteLine($"[Server] Player disconnected: {peer.EndPoint} (Reason: {reason})");
+        Log.Info($"Player disconnected: {peer.EndPoint} (Reason: {reason})");
         
         lock (_lock)
         {
@@ -411,7 +410,7 @@ public class HeadlessNetService : INetEventListener
     
     public void OnNetworkError(string endPoint, int socketError)
     {
-        Console.WriteLine($"[Server] Network error: {socketError} from {endPoint}");
+        Log.Warn($"Network error: {socketError} from {endPoint}");
     }
     
     public void OnNetworkReceive(NetPeer peer, NetDataReader reader, DeliveryMethod deliveryMethod)
@@ -437,16 +436,16 @@ public class HeadlessNetService : INetEventListener
                 if (fileInfo.Length <= 1024 * 1024)
                 {
                     _cachedLogoData = File.ReadAllBytes(logoPath);
-                    Console.WriteLine($"[Server] Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
+                    Log.Debug($"Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
                 }
                 else
                 {
-                    Console.WriteLine($"[Server] Logo too large (max 1MB): {fileInfo.Length} bytes");
+                    Log.Warn($"Logo too large (max 1MB): {fileInfo.Length} bytes");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Server] Failed to load logo: {ex.Message}");
+                Log.Error(ex, "LoadLogo");
             }
         }
         return _cachedLogoData;
@@ -491,7 +490,7 @@ public class HeadlessNetService : INetEventListener
             
             var responseData = _writer.CopyData();
             _server?.SendUnconnected(remoteEndPoint, responseData);
-            Console.WriteLine($"[Server] Discovery response to {remoteEndPoint}, {responseData.Length} bytes");
+            Log.Debug($"Discovery response to {remoteEndPoint}, {responseData.Length} bytes");
         }
     }
     
@@ -530,7 +529,7 @@ public class HeadlessNetService : INetEventListener
             System.Threading.Thread.Sleep(5);
         }
         
-        Console.WriteLine($"[Server] Sent logo in {totalChunks} chunks to {endpoint}");
+        Log.Debug($"Sent logo in {totalChunks} chunks to {endpoint}");
     }
     
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
@@ -559,7 +558,7 @@ public class HeadlessNetService : INetEventListener
             }
             
             _netManager?.SendUnconnectedMessage(_writer, remoteEndPoint);
-            Console.WriteLine($"[Server] Discovery request from {remoteEndPoint}");
+            Log.Debug($"Discovery request from {remoteEndPoint}");
         }
     }
     
@@ -579,19 +578,19 @@ public class HeadlessNetService : INetEventListener
         if (PlayerCount >= _config.MaxPlayers)
         {
             request.Reject();
-            Console.WriteLine($"[Server] Connection rejected (server full): {request.RemoteEndPoint}");
+            Log.Warn($"Connection rejected (server full): {request.RemoteEndPoint}");
             return;
         }
         
         if (request.Key == _config.GameKey)
         {
             request.Accept();
-            Console.WriteLine($"[Server] Connection accepted: {request.RemoteEndPoint}");
+            Log.Info($"Connection accepted: {request.RemoteEndPoint}");
         }
         else
         {
             request.Reject();
-            Console.WriteLine($"[Server] Connection rejected (invalid key): {request.RemoteEndPoint}");
+            Log.Warn($"Connection rejected (invalid key): {request.RemoteEndPoint}");
         }
     }
 }

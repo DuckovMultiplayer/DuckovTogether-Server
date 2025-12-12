@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Sockets;
 using DuckovNet;
 using DuckovTogether.Core;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Net;
 
@@ -50,30 +51,30 @@ public class DuckovNetService : INetEventListener
         var started = await _transport.StartServerAsync(_config.Port);
         if (started)
         {
-            Console.WriteLine($"[DuckovNet] Server started on port {_config.Port}");
-            Console.WriteLine($"[DuckovNet] Protocol: {QuicTransport.PROTOCOL_VERSION}");
-            Console.WriteLine($"[DuckovNet] Max players: {_config.MaxPlayers}");
-            Console.WriteLine("[DuckovNet] Press Ctrl+C to stop");
+            Log.Info($"Server started on port {_config.Port}");
+            Log.Info($"Protocol: {QuicTransport.PROTOCOL_VERSION}");
+            Log.Info($"Max players: {_config.MaxPlayers}");
+            Log.Info("Press Ctrl+C to stop");
             Console.WriteLine();
             PrintNetworkInfo();
         }
         else
         {
-            Console.WriteLine($"[DuckovNet] Failed to start on port {_config.Port}");
+            Log.Error($"Failed to start on port {_config.Port}");
         }
         return started;
     }
     
     private void PrintNetworkInfo()
     {
-        Console.WriteLine("===========================================");
-        Console.WriteLine("  Connection Information (QUIC/TLS 1.3)");
-        Console.WriteLine("===========================================");
-        Console.WriteLine($"  Local:    127.0.0.1:{_config.Port}");
+        Log.Info("===========================================");
+        Log.Info("  Connection Information (QUIC/TLS 1.3)");
+        Log.Info("===========================================");
+        Log.Info($"  Local:    127.0.0.1:{_config.Port}");
         
         foreach (var ip in GetLanAddresses())
         {
-            Console.WriteLine($"  LAN:      {ip}:{_config.Port}");
+            Log.Info($"  LAN:      {ip}:{_config.Port}");
         }
         
         Task.Run(async () =>
@@ -81,9 +82,9 @@ public class DuckovNetService : INetEventListener
             var publicIP = await GetPublicIPAsync();
             if (!string.IsNullOrEmpty(publicIP))
             {
-                Console.WriteLine($"  Public:   {publicIP}:{_config.Port}");
+                Log.Info($"  Public:   {publicIP}:{_config.Port}");
             }
-            Console.WriteLine("===========================================");
+            Log.Info("===========================================");
             Console.WriteLine();
         });
     }
@@ -132,7 +133,7 @@ public class DuckovNetService : INetEventListener
             _players.Clear();
             _peers.Clear();
         }
-        Console.WriteLine("[DuckovNet] Server stopped");
+        Log.Info("Server stopped");
     }
     
     public void SendToAll(NetDataWriter writer, DeliveryMethod method = DeliveryMethod.ReliableOrdered)
@@ -220,7 +221,7 @@ public class DuckovNetService : INetEventListener
     
     private void OnQuicPeerConnected(QuicPeer quicPeer)
     {
-        Console.WriteLine($"[DuckovNet] Player connected: {quicPeer.EndPoint} (ID: {quicPeer.Id})");
+        Log.Info($"Player connected: {quicPeer.EndPoint} (ID: {quicPeer.Id})");
         
         var netPeer = new NetPeer
         {
@@ -250,7 +251,7 @@ public class DuckovNetService : INetEventListener
     
     private void OnQuicPeerDisconnected(QuicPeer quicPeer, string reason)
     {
-        Console.WriteLine($"[DuckovNet] Player disconnected: {quicPeer.EndPoint} (Reason: {reason})");
+        Log.Info($"Player disconnected: {quicPeer.EndPoint} (Reason: {reason})");
         
         lock (_lock)
         {
@@ -292,16 +293,16 @@ public class DuckovNetService : INetEventListener
                 if (fileInfo.Length <= 1024 * 1024)
                 {
                     _cachedLogoData = File.ReadAllBytes(logoPath);
-                    Console.WriteLine($"[DuckovNet] Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
+                    Log.Debug($"Loaded logo: {logoPath} ({_cachedLogoData.Length} bytes)");
                 }
                 else
                 {
-                    Console.WriteLine($"[DuckovNet] Logo too large (max 1MB): {fileInfo.Length} bytes");
+                    Log.Warn($"Logo too large (max 1MB): {fileInfo.Length} bytes");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DuckovNet] Failed to load logo: {ex.Message}");
+                Log.Error(ex, "LoadLogo");
             }
         }
         return _cachedLogoData;
@@ -312,7 +313,7 @@ public class DuckovNetService : INetEventListener
     public void OnNetworkReceive(NetPeer peer, NetDataReader reader, DeliveryMethod deliveryMethod) { }
     public void OnNetworkError(string endPoint, int socketError)
     {
-        Console.WriteLine($"[DuckovNet] Network error: {socketError} from {endPoint}");
+        Log.Warn($"Network error: {socketError} from {endPoint}");
     }
     public void OnConnectionRequest(NetConnectionRequest request)
     {

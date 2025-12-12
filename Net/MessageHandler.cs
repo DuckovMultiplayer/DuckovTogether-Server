@@ -243,7 +243,7 @@ public class MessageHandler
         if (peer != null)
         {
             _netService.SendToPeer(peer, _writer);
-            Console.WriteLine($"[MessageHandler] Sent SetId to peer {peerId}: {endPoint}");
+            Log.Info($"Sent SetId to peer {peerId}: {endPoint}");
         }
     }
     
@@ -316,7 +316,7 @@ public class MessageHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleMessage: {ex.Message}");
+            Log.Error(ex, "HandleMessage");
         }
     }
     
@@ -334,7 +334,7 @@ public class MessageHandler
             
             PlayerSyncManager.Instance.UpdatePlayerAnimation(peerId, speed, dirX, dirY, hand, gunReady, dashing, reloading);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandlePlayerEquipment(int peerId, NetPacketReader reader)
@@ -353,7 +353,7 @@ public class MessageHandler
             
             PlayerSyncManager.Instance.UpdatePlayerEquipment(peerId, weaponId, armorId, helmetId, hotbar);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleWeaponFire(int peerId, NetPacketReader reader)
@@ -373,7 +373,7 @@ public class MessageHandler
                 new System.Numerics.Vector3(ox, oy, oz),
                 new System.Numerics.Vector3(dx, dy, dz), ammoType);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleDamage(int peerId, NetPacketReader reader)
@@ -399,7 +399,7 @@ public class MessageHandler
                 CombatSyncManager.Instance.OnAIDamage(targetId, peerId, damage, damageType, hitPoint);
             }
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleItemPickup(int peerId, NetPacketReader reader)
@@ -413,7 +413,7 @@ public class MessageHandler
             
             ItemSyncManager.Instance.OnItemPickup(peerId, containerId, slotIndex, itemTypeId, count);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleItemDrop(int peerId, NetPacketReader reader)
@@ -428,7 +428,7 @@ public class MessageHandler
             
             ItemSyncManager.Instance.OnItemDrop(peerId, itemTypeId, count, new System.Numerics.Vector3(x, y, z));
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleDoorInteract(int peerId, NetPacketReader reader)
@@ -440,7 +440,7 @@ public class MessageHandler
             
             WorldSyncManager.Instance.OnDoorInteract(doorId, isOpen, peerId);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void HandleJsonMessage(int peerId, NetPacketReader reader, byte channel)
@@ -494,7 +494,7 @@ public class MessageHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleJsonMessage: {ex.Message}");
+            Log.Error(ex, "HandleJsonMessage");
         }
     }
     
@@ -510,10 +510,10 @@ public class MessageHandler
                 player.IsInGame = (bool?)data.isInGame ?? false;
                 player.SceneId = (string?)data.sceneId ?? "";
                 player.LastUpdate = DateTime.Now;
-                Console.WriteLine($"[JsonStatus] {player.PlayerName} - InGame: {player.IsInGame}, Scene: {player.SceneId}");
+                Log.Debug($"JsonStatus: {player.PlayerName} - InGame: {player.IsInGame}, Scene: {player.SceneId}");
             }
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] Parse error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "Parse error"); }
     }
     
     private void BroadcastJsonMessage(int senderPeerId, string json, byte channel)
@@ -618,7 +618,7 @@ public class MessageHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandlePlayerPosition: {ex.Message}");
+            Log.Error(ex, "HandlePlayerPosition");
         }
     }
     
@@ -630,11 +630,11 @@ public class MessageHandler
             var player = _netService.GetPlayer(peerId);
             var playerName = player?.PlayerName ?? $"Player_{peerId}";
             
-            Console.WriteLine($"[Chat] {playerName}: {message}");
+            Log.Info($"[Chat] {playerName}: {message}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleChatMessage: {ex.Message}");
+            Log.Error(ex, "HandleChatMessage");
         }
     }
     
@@ -654,11 +654,11 @@ public class MessageHandler
             var mode = DeliveryMode.Reliable;
             _netService.Server?.SendToAll(_writer.CopyData(), mode);
             
-            Console.WriteLine($"[Destructible] Object {objectId} hurt by peer {peerId}, damage={damage}");
+            Log.Debug($"Destructible: Object {objectId} hurt by peer {peerId}, damage={damage}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleDestructibleHurt: {ex.Message}");
+            Log.Error(ex, "HandleDestructibleHurt");
         }
     }
     
@@ -712,11 +712,11 @@ public class MessageHandler
                 }
             }
             
-            Console.WriteLine($"[Grenade] Player {peerId} threw grenade type {typeId}");
+            Log.Debug($"Grenade: Player {peerId} threw grenade type {typeId}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleGrenadeThrow: {ex.Message}");
+            Log.Error(ex, "HandleGrenadeThrow");
         }
     }
     
@@ -769,7 +769,7 @@ public class MessageHandler
                 (float)data.rotZ
             );
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingPlaced error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "BuildingPlaced"); }
     }
     
     private void HandleBuildingDestroyed(int peerId, string json)
@@ -782,7 +782,7 @@ public class MessageHandler
             
             BuildingSyncManager.Instance.OnBuildingDestroyed(playerId, (string)data.buildingId);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingDestroyed error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "BuildingDestroyed"); }
     }
     
     private void HandleBuildingUpgraded(int peerId, string json)
@@ -795,7 +795,7 @@ public class MessageHandler
             
             BuildingSyncManager.Instance.OnBuildingUpgraded(playerId, (string)data.buildingId, (int)data.newLevel);
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingUpgraded error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "BuildingUpgraded"); }
     }
     
     private void HandleBuildingSyncRequest(int peerId)
@@ -812,9 +812,9 @@ public class MessageHandler
             _writer.Put(syncJson);
             _netService.SendToPeer(peer, _writer);
             
-            Console.WriteLine($"[MessageHandler] Sent building sync to peer {peerId}");
+            Log.Debug($"Sent building sync to peer {peerId}");
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] BuildingSyncRequest error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "BuildingSyncRequest"); }
     }
     
     private void HandleRequestLogo(int peerId)
@@ -837,9 +837,9 @@ public class MessageHandler
             _writer.Put(logoData.Length);
             _writer.Put(logoData);
             _netService.SendToPeer(peerId, _writer);
-            Console.WriteLine($"[MessageHandler] Sent logo ({logoData.Length} bytes) to peer {peerId}");
+            Log.Debug($"Sent logo ({logoData.Length} bytes) to peer {peerId}");
         }
-        catch (Exception ex) { Console.WriteLine($"[MessageHandler] RequestLogo error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error(ex, "RequestLogo"); }
     }
 }
 
