@@ -10,6 +10,7 @@
 
 using DuckovTogether.Core.GameLogic;
 using System.Numerics;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Security;
 
@@ -26,7 +27,7 @@ public class ValidationService
     public void Initialize(string serverKey)
     {
         DuckovGuard.Initialize(serverKey);
-        Console.WriteLine("[ValidationService] Initialized");
+        Log.Info("ValidationService initialized");
     }
     
     public void Shutdown()
@@ -46,7 +47,7 @@ public class ValidationService
         }
         
         DuckovGuard.RegisterPlayer((uint)peerId);
-        Console.WriteLine($"[Validation] Player {peerId} registered");
+        Log.Debug($"Player {peerId} registered");
     }
     
     public void OnPlayerLeave(int peerId)
@@ -184,12 +185,12 @@ public class ValidationService
             state.ViolationCount++;
         }
         
-        Console.WriteLine($"[Violation] Player {peerId}: {type} - {details}");
+        Log.Warn($"Violation Player {peerId}: {type} - {details}");
         OnViolationDetected?.Invoke(peerId, type, details);
         
         if (state.ViolationCount >= 10)
         {
-            Console.WriteLine($"[Validation] Player {peerId} has {state.ViolationCount} violations - consider kicking");
+            Log.Warn($"Player {peerId} has {state.ViolationCount} violations - consider kicking");
         }
     }
     

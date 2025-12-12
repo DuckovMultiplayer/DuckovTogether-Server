@@ -11,6 +11,7 @@
 using System.Numerics;
 using DuckovTogether.Core.Sync;
 using DuckovTogether.Net;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.GameLogic;
 
@@ -51,7 +52,7 @@ public class AIManager
                 }
             }
             
-            Console.WriteLine($"[AIManager] Loaded scene: {sceneId}, spawned {_entities.Count(e => e.Value.SceneId == sceneId)} AI");
+            Log.Debug($"Loaded scene: {sceneId}, spawned {_entities.Count(e => e.Value.SceneId == sceneId)} AI");
         }
     }
     
@@ -121,7 +122,7 @@ public class AIManager
             DeltaSyncManager.Instance.UpdateAIState(entityId, entity.Position, 
                 new Vector3(0, 0, 0), entity.CurrentHealth, (int)entity.State);
             
-            Console.WriteLine($"[AIManager] Spawned AI: {entity.TypeName} (ID: {entityId}) at {entity.Position}");
+            Log.Debug($"Spawned AI: {entity.TypeName} (ID: {entityId}) at {entity.Position}");
             return entity;
         }
     }
@@ -356,7 +357,7 @@ public class AIManager
                         sm.Rotation, sm.CurrentHealth, (int)sm.CurrentState);
                 }
                 
-                Console.WriteLine($"[AIManager] AI {entityId} took {damage} damage from player {fromPlayerId}, HP: {sm.CurrentHealth}/{sm.MaxHealth}");
+                Log.Debug($"AI {entityId} took {damage} damage from player {fromPlayerId}, HP: {sm.CurrentHealth}/{sm.MaxHealth}");
             }
         }
     }

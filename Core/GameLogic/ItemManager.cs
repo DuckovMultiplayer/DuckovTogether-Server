@@ -10,6 +10,7 @@
 
 using System.Numerics;
 using Newtonsoft.Json;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.GameLogic;
 
@@ -30,7 +31,7 @@ public class ItemManager
     {
         if (!File.Exists(path))
         {
-            Console.WriteLine($"[ItemManager] Item database not found: {path}");
+            Log.Warn($"Item database not found: {path}");
             CreateDefaultDatabase(path);
             return;
         }
@@ -46,11 +47,11 @@ public class ItemManager
                     _itemDatabase[item.ItemId] = item;
                 }
             }
-            Console.WriteLine($"[ItemManager] Loaded {_itemDatabase.Count} items");
+            Log.Info($"Loaded {_itemDatabase.Count} items");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[ItemManager] Failed to load database: {ex.Message}");
+            Log.Error(ex, "LoadItemDatabase");
         }
     }
     
@@ -79,7 +80,7 @@ public class ItemManager
             _itemDatabase[item.ItemId] = item;
         }
         
-        Console.WriteLine($"[ItemManager] Created default database with {defaultItems.Count} items");
+        Log.Info($"Created default database with {defaultItems.Count} items");
     }
     
     public void LoadSceneLoot(string sceneId)
@@ -99,7 +100,7 @@ public class ItemManager
                 }
             }
             
-            Console.WriteLine($"[ItemManager] Loaded loot for scene: {sceneId}");
+            Log.Debug($"Loaded loot for scene: {sceneId}");
         }
     }
     
@@ -176,7 +177,7 @@ public class ItemManager
             container.LootedAt = DateTime.Now;
             container.LootedBy = playerId;
             
-            Console.WriteLine($"[ItemManager] Container {containerId} looted by player {playerId}");
+            Log.Debug($"Container {containerId} looted by player {playerId}");
             return container.Items;
         }
     }
@@ -201,7 +202,7 @@ public class ItemManager
             _droppedItems[dropId] = item;
         }
         
-        Console.WriteLine($"[ItemManager] Item dropped: {itemId} x{count} at {position}");
+        Log.Debug($"Item dropped: {itemId} x{count} at {position}");
         return dropId;
     }
     
@@ -213,7 +214,7 @@ public class ItemManager
                 return null;
             
             _droppedItems.Remove(dropId);
-            Console.WriteLine($"[ItemManager] Item {item.ItemId} picked up by player {playerId}");
+            Log.Debug($"Item {item.ItemId} picked up by player {playerId}");
             return item;
         }
     }

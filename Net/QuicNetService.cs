@@ -13,6 +13,7 @@ using System.Net.Sockets;
 using System.Text;
 using DuckovNet;
 using DuckovTogether.Core;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Net;
 
@@ -39,7 +40,7 @@ public class QuicNetService
     {
         if (!QuicTransport.IsSupported)
         {
-            Console.WriteLine("[Server] QUIC not supported, falling back to UDP+KCP");
+            Log.Warn("QUIC not supported, falling back to UDP+KCP");
             return await StartFallbackAsync();
         }
         
@@ -51,10 +52,10 @@ public class QuicNetService
         var started = await _transport.StartServerAsync(_config.Port);
         if (started)
         {
-            Console.WriteLine($"[Server] Started on port {_config.Port}");
-            Console.WriteLine($"[Server] Protocol: {QuicTransport.PROTOCOL_VERSION}");
-            Console.WriteLine($"[Server] Max players: {_config.MaxPlayers}");
-            Console.WriteLine("[Server] Press Ctrl+C to stop");
+            Log.Info($"Started on port {_config.Port}");
+            Log.Info($"Protocol: {QuicTransport.PROTOCOL_VERSION}");
+            Log.Info($"Max players: {_config.MaxPlayers}");
+            Log.Info("Press Ctrl+C to stop");
             Console.WriteLine();
             PrintNetworkInfo();
         }
@@ -64,20 +65,20 @@ public class QuicNetService
     private async Task<bool> StartFallbackAsync()
     {
         _transport = new QuicTransport();
-        Console.WriteLine("[Server] Using DuckovNet UDP+KCP fallback");
+        Log.Info("Using DuckovNet UDP+KCP fallback");
         return false;
     }
     
     private void PrintNetworkInfo()
     {
-        Console.WriteLine("===========================================");
-        Console.WriteLine("  Connection Information (QUIC)");
-        Console.WriteLine("===========================================");
-        Console.WriteLine($"  Local:    127.0.0.1:{_config.Port}");
+        Log.Info("===========================================");
+        Log.Info("  Connection Information (QUIC)");
+        Log.Info("===========================================");
+        Log.Info($"  Local:    127.0.0.1:{_config.Port}");
         
         foreach (var ip in GetLanAddresses())
         {
-            Console.WriteLine($"  LAN:      {ip}:{_config.Port}");
+            Log.Info($"  LAN:      {ip}:{_config.Port}");
         }
         
         Task.Run(async () =>
@@ -85,9 +86,9 @@ public class QuicNetService
             var publicIP = await GetPublicIPAsync();
             if (!string.IsNullOrEmpty(publicIP))
             {
-                Console.WriteLine($"  Public:   {publicIP}:{_config.Port}");
+                Log.Info($"  Public:   {publicIP}:{_config.Port}");
             }
-            Console.WriteLine("===========================================");
+            Log.Info("===========================================");
             Console.WriteLine();
         });
     }
@@ -132,7 +133,7 @@ public class QuicNetService
     {
         _transport?.Stop();
         lock (_lock) { _players.Clear(); }
-        Console.WriteLine("[Server] Stopped");
+        Log.Info("Server stopped");
     }
     
     public void SendToAll(byte[] data, DeliveryMode mode = DeliveryMode.Reliable)
@@ -169,7 +170,7 @@ public class QuicNetService
     
     private void OnPeerConnectedHandler(QuicPeer peer)
     {
-        Console.WriteLine($"[Server] Player connected: {peer.EndPoint} (ID: {peer.Id})");
+        Log.Info($"Player connected: {peer.EndPoint} (ID: {peer.Id})");
         
         var state = new PlayerState
         {
@@ -185,7 +186,7 @@ public class QuicNetService
     
     private void OnPeerDisconnectedHandler(QuicPeer peer, string reason)
     {
-        Console.WriteLine($"[Server] Player disconnected: {peer.EndPoint} (Reason: {reason})");
+        Log.Info($"Player disconnected: {peer.EndPoint} (Reason: {reason})");
         lock (_lock) { _players.Remove(peer.Id); }
         OnPlayerDisconnected?.Invoke(peer.Id, reason);
     }
