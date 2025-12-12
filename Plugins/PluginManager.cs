@@ -12,6 +12,7 @@ using System.Reflection;
 using DuckovTogether.Net;
 using DuckovTogether.Core;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Plugins;
 
@@ -43,20 +44,20 @@ public class PluginManager : IPluginHost
         Directory.CreateDirectory(DataPath);
         Directory.CreateDirectory(PluginPath);
         
-        Console.WriteLine("[PluginManager] Initialized");
-        Console.WriteLine($"[PluginManager] Plugin directory: {PluginPath}");
+        DuckovTogetherServer.Core.Logging.Log.Info("PluginManager initialized");
+        DuckovTogetherServer.Core.Logging.Log.Debug($"Plugin directory: {PluginPath}");
     }
     
     public void LoadPlugins()
     {
         if (!Directory.Exists(PluginPath))
         {
-            Console.WriteLine("[PluginManager] No plugins directory found");
+            DuckovTogetherServer.Core.Logging.Log.Debug("No plugins directory found");
             return;
         }
         
         var dllFiles = Directory.GetFiles(PluginPath, "*.dll");
-        Console.WriteLine($"[PluginManager] Found {dllFiles.Length} plugin files");
+        DuckovTogetherServer.Core.Logging.Log.Debug($"Found {dllFiles.Length} plugin files");
         
         foreach (var dllPath in dllFiles)
         {
@@ -66,11 +67,11 @@ public class PluginManager : IPluginHost
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PluginManager] Failed to load {Path.GetFileName(dllPath)}: {ex.Message}");
+                DuckovTogetherServer.Core.Logging.Log.Error($"Failed to load {Path.GetFileName(dllPath)}: {ex.Message}");
             }
         }
         
-        Console.WriteLine($"[PluginManager] Loaded {_plugins.Count} plugins");
+        DuckovTogetherServer.Core.Logging.Log.Info($"Loaded {_plugins.Count} plugins");
     }
     
     private void LoadPlugin(string dllPath)
@@ -95,11 +96,11 @@ public class PluginManager : IPluginHost
             {
                 plugin.OnLoad(this);
                 RegisterPluginCommands(plugin);
-                Console.WriteLine($"[PluginManager] Loaded: {plugin.Name} v{plugin.Version} by {plugin.Author}");
+                DuckovTogetherServer.Core.Logging.Log.Info($"Loaded plugin: {plugin.Name} v{plugin.Version} by {plugin.Author}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PluginManager] Error initializing {plugin.Name}: {ex.Message}");
+                DuckovTogetherServer.Core.Logging.Log.Error($"Error initializing {plugin.Name}: {ex.Message}");
                 _plugins.Remove(container);
             }
         }
@@ -126,11 +127,11 @@ public class PluginManager : IPluginHost
             try
             {
                 container.Plugin.OnUnload();
-                Console.WriteLine($"[PluginManager] Unloaded: {container.Plugin.Name}");
+                DuckovTogetherServer.Core.Logging.Log.Info($"Unloaded: {container.Plugin.Name}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[PluginManager] Error unloading {container.Plugin.Name}: {ex.Message}");
+                DuckovTogetherServer.Core.Logging.Log.Error($"Error unloading {container.Plugin.Name}: {ex.Message}");
             }
         }
         _plugins.Clear();
@@ -148,7 +149,7 @@ public class PluginManager : IPluginHost
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Plugin:{container.Plugin.Name}] Update error: {ex.Message}");
+                DuckovTogetherServer.Core.Logging.Log.Error($"Plugin {container.Plugin.Name} update error: {ex.Message}");
             }
         }
         
@@ -170,7 +171,7 @@ public class PluginManager : IPluginHost
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[PluginManager] Task error: {ex.Message}");
+                    DuckovTogetherServer.Core.Logging.Log.Error($"Task error: {ex.Message}");
                 }
                 
                 if (task.IsRepeating)
@@ -207,7 +208,7 @@ public class PluginManager : IPluginHost
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Command] Error executing '{cmdName}': {ex.Message}");
+                DuckovTogetherServer.Core.Logging.Log.Error($"Command error '{cmdName}': {ex.Message}");
                 return true;
             }
         }
@@ -215,9 +216,9 @@ public class PluginManager : IPluginHost
         return false;
     }
     
-    public void Log(string message) => Console.WriteLine($"[Plugin] {message}");
-    public void LogWarning(string message) => Console.WriteLine($"[Plugin:WARN] {message}");
-    public void LogError(string message) => Console.WriteLine($"[Plugin:ERROR] {message}");
+    public void Log(string message) => DuckovTogetherServer.Core.Logging.Log.Info($"[Plugin] {message}");
+    public void LogWarning(string message) => DuckovTogetherServer.Core.Logging.Log.Warn($"[Plugin] {message}");
+    public void LogError(string message) => DuckovTogetherServer.Core.Logging.Log.Error($"[Plugin] {message}");
     
     public void RegisterCommand(string name, string description, Action<string[]> handler)
     {
@@ -253,7 +254,7 @@ public class PluginManager : IPluginHost
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[PluginManager] Message handler error: {ex.Message}");
+                    DuckovTogetherServer.Core.Logging.Log.Error($"Message handler error: {ex.Message}");
                 }
             }
         }

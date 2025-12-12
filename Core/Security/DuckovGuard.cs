@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Runtime.InteropServices;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Security;
 
@@ -120,17 +121,17 @@ public static class DuckovGuard
             var result = dg_init(serverKey, (uint)serverKey.Length);
             _available = result != 0;
             _initialized = true;
-            Console.WriteLine($"[DuckovGuard] Initialized: {_available}");
+            Log.Info($"DuckovGuard initialized: {_available}");
         }
         catch (DllNotFoundException)
         {
-            Console.WriteLine("[DuckovGuard] Native library not found, using fallback validation");
+            Log.Warn("DuckovGuard native library not found, using fallback validation");
             _available = false;
             _initialized = true;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DuckovGuard] Init error: {ex.Message}");
+            Log.Error($"DuckovGuard init error: {ex.Message}");
             _available = false;
             _initialized = true;
         }
@@ -142,7 +143,7 @@ public static class DuckovGuard
     {
         if (_available)
         {
-            try { dg_shutdown(); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+            try { dg_shutdown(); } catch (Exception ex) { Log.Error($"DuckovGuard shutdown error: {ex.Message}"); }
         }
         _initialized = false;
         _available = false;
@@ -162,7 +163,7 @@ public static class DuckovGuard
     public static void UnregisterPlayer(uint playerId)
     {
         if (!_available) return;
-        try { dg_unregister_player(playerId); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+        try { dg_unregister_player(playerId); } catch (Exception ex) { Log.Error($"DuckovGuard error: {ex.Message}"); }
     }
     
     public static bool ValidatePosition(uint playerId, float x, float y, float z, float deltaTime = 0.016f)
@@ -219,13 +220,13 @@ public static class DuckovGuard
     public static void UpdatePlayerPosition(uint playerId, float x, float y, float z)
     {
         if (!_available) return;
-        try { dg_update_player_position(playerId, x, y, z); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+        try { dg_update_player_position(playerId, x, y, z); } catch (Exception ex) { Log.Error($"DuckovGuard error: {ex.Message}"); }
     }
     
     public static void UpdatePlayerHealth(uint playerId, float health)
     {
         if (!_available) return;
-        try { dg_update_player_health(playerId, health); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+        try { dg_update_player_health(playerId, health); } catch (Exception ex) { Log.Error($"DuckovGuard error: {ex.Message}"); }
     }
     
     public static uint GetViolationCount(uint playerId)
@@ -243,7 +244,7 @@ public static class DuckovGuard
             if (dg_get_last_violation(playerId, out var report) != 0)
                 return report;
         }
-        catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+        catch (Exception ex) { Log.Error($"DuckovGuard error: {ex.Message}"); }
         
         return null;
     }
@@ -251,7 +252,7 @@ public static class DuckovGuard
     public static void ClearViolations(uint playerId)
     {
         if (!_available) return;
-        try { dg_clear_violations(playerId); } catch (Exception ex) { Console.WriteLine($"[DuckovGuard] Error: {ex.Message}"); }
+        try { dg_clear_violations(playerId); } catch (Exception ex) { Log.Error($"DuckovGuard error: {ex.Message}"); }
     }
     
     public static uint ComputeChecksum(byte[] data)

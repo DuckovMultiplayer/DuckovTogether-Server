@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using Newtonsoft.Json;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.Save;
 
@@ -44,11 +45,11 @@ public class ServerSaveManager
             {
                 var json = File.ReadAllText(path);
                 CurrentWorld = JsonConvert.DeserializeObject<WorldState>(json) ?? new WorldState();
-                Console.WriteLine($"[SaveManager] Loaded world: {worldId}");
+                Log.Info($"Loaded world: {worldId}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[SaveManager] Failed to load world: {ex.Message}");
+                Log.Error(ex, "LoadWorld");
                 CurrentWorld = new WorldState();
             }
         }
@@ -56,7 +57,7 @@ public class ServerSaveManager
         {
             CurrentWorld = new WorldState { WorldId = worldId, CreatedAt = DateTime.Now };
             SaveWorld();
-            Console.WriteLine($"[SaveManager] Created new world: {worldId}");
+            Log.Info($"Created new world: {worldId}");
         }
     }
     
@@ -72,7 +73,7 @@ public class ServerSaveManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SaveManager] Failed to save world: {ex.Message}");
+            Log.Error(ex, "SaveWorld");
         }
     }
     
@@ -89,7 +90,7 @@ public class ServerSaveManager
                 var json = File.ReadAllText(path);
                 var data = JsonConvert.DeserializeObject<PlayerSaveData>(json) ?? new PlayerSaveData { PlayerId = playerId };
                 PlayerSaves[playerId] = data;
-                Console.WriteLine($"[SaveManager] Loaded player: {playerId}");
+                Log.Debug($"Loaded player: {playerId}");
                 return data;
             }
             catch
@@ -110,7 +111,7 @@ public class ServerSaveManager
         };
         PlayerSaves[playerId] = data;
         SavePlayer(playerId);
-        Console.WriteLine($"[SaveManager] Created new player: {playerId}");
+        Log.Debug($"Created new player: {playerId}");
         return data;
     }
     
@@ -129,7 +130,7 @@ public class ServerSaveManager
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SaveManager] Failed to save player {playerId}: {ex.Message}");
+            Log.Error(ex, $"SavePlayer {playerId}");
         }
     }
     
@@ -140,7 +141,7 @@ public class ServerSaveManager
         {
             SavePlayer(playerId);
         }
-        Console.WriteLine("[SaveManager] Saved all data");
+        Log.Info("Saved all data");
     }
     
     private static string SanitizeFileName(string name)

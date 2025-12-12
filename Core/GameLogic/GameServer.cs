@@ -11,6 +11,7 @@
 using System.Numerics;
 using DuckovTogether.Core.Save;
 using DuckovTogether.Core.World;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core.GameLogic;
 
@@ -52,7 +53,7 @@ public class GameServer
         
         World.Initialize();
         
-        Console.WriteLine("[GameServer] Initialized");
+        Log.Info("GameServer initialized");
     }
     
     private void LoadSceneData(string dataPath)
@@ -77,7 +78,7 @@ public class GameServer
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[GameServer] Failed to load scene: {file} - {ex.Message}");
+                Log.Error($"Failed to load scene: {file} - {ex.Message}");
             }
         }
     }
@@ -117,7 +118,7 @@ public class GameServer
         File.WriteAllText(Path.Combine(scenesPath, "Level_GroundZero_Main.json"), json);
         
         RegisterSceneData(defaultScene);
-        Console.WriteLine("[GameServer] Created default scene data");
+        Log.Info("Created default scene data");
     }
     
     private void RegisterSceneData(SceneData data)
@@ -132,7 +133,7 @@ public class GameServer
             Items.RegisterLootSpawnPoint(data.SceneId, spawn);
         }
         
-        Console.WriteLine($"[GameServer] Registered scene: {data.SceneId} ({data.AISpawns.Count} AI, {data.LootSpawns.Count} loot)");
+        Log.Debug($"Registered scene: {data.SceneId} ({data.AISpawns.Count} AI, {data.LootSpawns.Count} loot)");
     }
     
     public void Update()
@@ -179,7 +180,7 @@ public class GameServer
         }
         
         World.OnPlayerJoin(state.EndPoint, state.PlayerName);
-        Console.WriteLine($"[GameServer] Player joined: {state.PlayerName} (ID: {peerId})");
+        Log.Info($"Player joined: {state.PlayerName} (ID: {peerId})");
     }
     
     public void OnPlayerLeave(int peerId)
@@ -190,7 +191,7 @@ public class GameServer
             {
                 World.OnPlayerLeave(state.EndPoint);
                 _players.Remove(peerId);
-                Console.WriteLine($"[GameServer] Player left: {state.PlayerName}");
+                Log.Info($"Player left: {state.PlayerName}");
             }
         }
     }
@@ -211,12 +212,12 @@ public class GameServer
         Items.LoadSceneLoot(sceneId);
         
         OnSceneChanged?.Invoke(sceneId);
-        Console.WriteLine($"[GameServer] Scene changed to: {sceneId}");
+        Log.Info($"Scene changed to: {sceneId}");
     }
     
     public void Shutdown()
     {
-        Console.WriteLine("[GameServer] Shutting down...");
+        Log.Info("GameServer shutting down...");
         Saves.SaveAll();
     }
 }

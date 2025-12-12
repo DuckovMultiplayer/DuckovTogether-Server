@@ -11,6 +11,7 @@
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Core.World;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.Sync;
@@ -63,13 +64,13 @@ public class ClientRequestHandler
                     break;
                     
                 default:
-                    Console.WriteLine($"[RequestHandler] Unknown request type: {baseMsg.type}");
+                    Log.Debug($"Unknown request type: {baseMsg.type}");
                     break;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[RequestHandler] Error: {ex.Message}");
+            Log.Error(ex, "HandleJsonRequest");
         }
     }
     
@@ -82,7 +83,7 @@ public class ClientRequestHandler
             .FirstOrDefault(p => p.PlayerId.GetHashCode() == peerId);
         
         WorldStateManager.Instance.StartVote(req.targetScene, player?.PlayerId ?? peerId.ToString());
-        Console.WriteLine($"[Vote] Player {peerId} requested vote for: {req.targetScene}");
+        Log.Info($"Player {peerId} requested vote for: {req.targetScene}");
     }
     
     private void HandleSceneVoteReady(int peerId, string json)
@@ -91,7 +92,7 @@ public class ClientRequestHandler
         if (req == null) return;
         
         WorldStateManager.Instance.SetVoteReady(peerId.ToString(), req.ready);
-        Console.WriteLine($"[Vote] Player {peerId} set ready: {req.ready}");
+        Log.Debug($"Player {peerId} set ready: {req.ready}");
     }
     
     private void HandleClientStatus(int peerId, string json)
@@ -138,7 +139,7 @@ public class ClientRequestHandler
             peerId
         );
         
-        Console.WriteLine($"[Item] Player {peerId} dropped {req.itemId} x{req.count}");
+        Log.Debug($"Player {peerId} dropped {req.itemId} x{req.count}");
     }
     
     private void HandleItemPickupRequest(int peerId, string json)
@@ -149,7 +150,7 @@ public class ClientRequestHandler
         var item = ItemManager.Instance.TryPickupItem(req.dropId, peerId);
         if (item != null)
         {
-            Console.WriteLine($"[Item] Player {peerId} picked up {item.ItemId}");
+            Log.Debug($"Player {peerId} picked up {item.ItemId}");
         }
     }
     
