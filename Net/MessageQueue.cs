@@ -10,6 +10,7 @@
 
 using System.Collections.Concurrent;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Net;
 
@@ -39,7 +40,7 @@ public class MessageQueue
     public void Initialize(HeadlessNetService netService)
     {
         _netService = netService;
-        Console.WriteLine("[MessageQueue] Initialized");
+        Log.Info("MessageQueue initialized");
     }
     
     public void EnqueueBroadcast(byte[] data, MessagePriority priority = MessagePriority.Normal, int? excludePeerId = null)

@@ -12,6 +12,7 @@ using DuckovTogether.Core.Sync;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogether.Net;
 using DuckovNet;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Core;
 
@@ -32,7 +33,7 @@ public static class ServiceRegistration
         container.Register<ILogger>(_logger);
         container.Register<INetService>(new NetServiceAdapter(netService));
         
-        Console.WriteLine("[Services] All services registered");
+        DuckovTogetherServer.Core.Logging.Log.Info("All services registered");
     }
     
     public static void Log(string message) => Logger.Log(message);

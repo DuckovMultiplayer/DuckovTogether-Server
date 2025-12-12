@@ -8,6 +8,7 @@
 // Commercial use requires explicit written permission from the authors.
 // -----------------------------------------------------------------------
 
+using DuckovTogetherServer.Core.Logging;
 using Newtonsoft.Json;
 
 namespace DuckovTogether.Core.GameLogic;
@@ -36,12 +37,12 @@ public class LootTableConfig
                     Tables = config.Tables ?? new();
                     AILoot = config.AILoot ?? new();
                     ContainerLoot = config.ContainerLoot ?? new();
-                    Console.WriteLine($"[LootTable] Loaded {Tables.Count} tables, {AILoot.Count} AI configs");
+                    Log.Info($"Loaded {Tables.Count} tables, {AILoot.Count} AI configs");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LootTable] Failed to load config: {ex.Message}");
+                Log.Error($"Failed to load config: {ex.Message}");
                 CreateDefaultConfig(lootPath);
             }
         }
@@ -161,11 +162,11 @@ public class LootTableConfig
         {
             var json = JsonConvert.SerializeObject(config, Formatting.Indented);
             File.WriteAllText(path, json);
-            Console.WriteLine($"[LootTable] Created default config: {path}");
+            Log.Info($"Created default config: {path}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LootTable] Failed to save config: {ex.Message}");
+            Log.Error($"Failed to save config: {ex.Message}");
         }
     }
     

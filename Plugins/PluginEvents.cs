@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------
 
 using System.Numerics;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether.Plugins;
 
@@ -140,7 +141,7 @@ public static class PluginEventDispatcher
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[EventDispatcher] Error: {ex.Message}");
+                    Log.Error($"EventDispatcher error: {ex.Message}");
                 }
             }
         }
