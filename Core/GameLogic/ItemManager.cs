@@ -247,6 +247,7 @@ public enum ItemCategory
     Armor,
     Ammo,
     Medical,
+    Medicine,
     Food,
     Key,
     Quest,
@@ -257,7 +258,15 @@ public enum ItemCategory
     Tool,
     Attachment,
     Container,
-    Currency
+    Currency,
+    Junk,
+    Resource,
+    Equipment,
+    Accessory,
+    Backpack,
+    Rig,
+    Helmet,
+    Clothing
 }
 
 public class ItemDefinition
