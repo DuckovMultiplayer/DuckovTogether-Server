@@ -535,15 +535,18 @@ public class MessageHandler
         try
         {
             var totalBytes = reader.AvailableBytes;
-            if (totalBytes < 10)
+            if (totalBytes < 40)
             {
-                Console.WriteLine($"[ClientStatus] Not enough bytes: {totalBytes}");
+                Console.WriteLine($"[ClientStatus] Skipping short message: {totalBytes} bytes");
                 return;
             }
             
             var endPoint = reader.GetString();
+            if (reader.AvailableBytes < 35) { Console.WriteLine($"[ClientStatus] Truncated after endPoint"); return; }
             var playerName = reader.GetString();
+            if (reader.AvailableBytes < 30) { Console.WriteLine($"[ClientStatus] Truncated after playerName"); return; }
             var isInGame = reader.GetBool();
+            if (reader.AvailableBytes < 28) { Console.WriteLine($"[ClientStatus] Truncated after isInGame"); return; }
             var posX = reader.GetFloat();
             var posY = reader.GetFloat();
             var posZ = reader.GetFloat();
@@ -551,6 +554,7 @@ public class MessageHandler
             var rotY = reader.GetFloat();
             var rotZ = reader.GetFloat();
             var rotW = reader.GetFloat();
+            if (reader.AvailableBytes < 1) { Console.WriteLine($"[ClientStatus] Truncated after rotation"); return; }
             var sceneId = reader.GetString();
             
             var remainingAfterCore = reader.AvailableBytes;
@@ -597,7 +601,6 @@ public class MessageHandler
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Error] HandleClientStatus: {ex.Message} at {ex.StackTrace?.Split('\n').FirstOrDefault()}");
         }
     }
     
