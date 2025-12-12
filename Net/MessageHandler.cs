@@ -539,6 +539,20 @@ public class MessageHandler
             var rotW = reader.GetFloat();
             var sceneId = reader.GetString();
             
+            var equipCount = reader.GetInt();
+            for (int i = 0; i < equipCount; i++)
+            {
+                reader.GetInt();
+                reader.GetString();
+            }
+            
+            var weaponCount = reader.GetInt();
+            for (int i = 0; i < weaponCount; i++)
+            {
+                reader.GetInt();
+                reader.GetString();
+            }
+            
             var player = _netService.GetPlayer(peerId);
             if (player != null)
             {
