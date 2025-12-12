@@ -291,6 +291,9 @@ public class MessageHandler
             case MessageType.DestructibleHurt:
                 HandleDestructibleHurt(peerId, reader);
                 break;
+            case MessageType.GrenadeThrow:
+                HandleGrenadeThrow(peerId, reader);
+                break;
             case MessageType.ItemPickup:
                 HandleItemPickup(peerId, reader);
                 break;
@@ -524,8 +527,16 @@ public class MessageHandler
     {
         try
         {
+            var endPoint = reader.GetString();
             var playerName = reader.GetString();
             var isInGame = reader.GetBool();
+            var posX = reader.GetFloat();
+            var posY = reader.GetFloat();
+            var posZ = reader.GetFloat();
+            var rotX = reader.GetFloat();
+            var rotY = reader.GetFloat();
+            var rotZ = reader.GetFloat();
+            var rotW = reader.GetFloat();
             var sceneId = reader.GetString();
             
             var player = _netService.GetPlayer(peerId);
@@ -534,6 +545,7 @@ public class MessageHandler
                 player.PlayerName = playerName;
                 player.IsInGame = isInGame;
                 player.SceneId = sceneId;
+                player.Position = new System.Numerics.Vector3(posX, posY, posZ);
                 player.LastUpdate = DateTime.Now;
                 
                 Console.WriteLine($"[Status] {playerName} - InGame: {isInGame}, Scene: {sceneId}");
@@ -603,6 +615,64 @@ public class MessageHandler
         catch (Exception ex)
         {
             Console.WriteLine($"[Error] HandleDestructibleHurt: {ex.Message}");
+        }
+    }
+    
+    private void HandleGrenadeThrow(int peerId, NetPacketReader reader)
+    {
+        try
+        {
+            var throwerId = reader.GetString();
+            var typeId = reader.GetInt();
+            var prefabType = reader.GetString();
+            var prefabName = reader.GetString();
+            var startX = reader.GetInt();
+            var startY = reader.GetInt();
+            var startZ = reader.GetInt();
+            var velX = reader.GetInt();
+            var velY = reader.GetInt();
+            var velZ = reader.GetInt();
+            var createExplosion = reader.GetBool();
+            var shake = reader.GetFloat();
+            var damageRange = reader.GetFloat();
+            var delayFromCollide = reader.GetBool();
+            var delayTime = reader.GetFloat();
+            var isLandmine = reader.GetBool();
+            var landmineRange = reader.GetFloat();
+            
+            _writer.Reset();
+            _writer.Put((byte)MessageType.GrenadeThrow);
+            _writer.Put(throwerId);
+            _writer.Put(typeId);
+            _writer.Put(prefabType);
+            _writer.Put(prefabName);
+            _writer.Put(startX);
+            _writer.Put(startY);
+            _writer.Put(startZ);
+            _writer.Put(velX);
+            _writer.Put(velY);
+            _writer.Put(velZ);
+            _writer.Put(createExplosion);
+            _writer.Put(shake);
+            _writer.Put(damageRange);
+            _writer.Put(delayFromCollide);
+            _writer.Put(delayTime);
+            _writer.Put(isLandmine);
+            _writer.Put(landmineRange);
+            
+            foreach (var peer in _netService.NetManager!.ConnectedPeerList)
+            {
+                if (peer.Id != peerId)
+                {
+                    peer.Send(_writer, DeliveryMethod.ReliableOrdered);
+                }
+            }
+            
+            Console.WriteLine($"[Grenade] Player {peerId} threw grenade type {typeId}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Error] HandleGrenadeThrow: {ex.Message}");
         }
     }
     
