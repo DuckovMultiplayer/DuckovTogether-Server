@@ -170,14 +170,54 @@ public class SyncManager
     
     public void BroadcastSceneVote(string sceneId, Dictionary<string, bool> votes)
     {
+        var players = _netService?.GetAllPlayers().ToList() ?? new List<PlayerState>();
+        var hostScene = GameServer.Instance?.Saves?.CurrentWorld?.CurrentScene ?? "";
+        
         var data = new SceneVoteSync
         {
             type = "sceneVote",
-            targetScene = sceneId,
-            votes = votes.Select(kv => new VoteEntry { playerId = kv.Key, ready = kv.Value }).ToList()
+            voteId = (int)(DateTime.Now.Ticks % 100000),
+            active = !string.IsNullOrEmpty(sceneId),
+            targetSceneId = sceneId,
+            targetSceneDisplayName = sceneId,
+            curtainGuid = "",
+            locationName = "",
+            notifyEvac = false,
+            saveToFile = true,
+            useLocation = false,
+            hostSceneId = hostScene,
+            playerList = new PlayerListData
+            {
+                items = votes.Select(kv => new PlayerInfoData
+                {
+                    playerId = kv.Key,
+                    playerName = players.FirstOrDefault(p => p.PeerId.ToString() == kv.Key)?.PlayerName ?? $"Player_{kv.Key}",
+                    steamId = "",
+                    steamName = "",
+                    ready = kv.Value
+                }).ToArray()
+            },
+            totalPlayers = votes.Count,
+            readyPlayers = votes.Count(v => v.Value),
+            timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
         };
         
-        BroadcastJson(data);
+        var json = JsonConvert.SerializeObject(data);
+        Log.Info($"[VOTE] Broadcasting sceneVote: target={sceneId}, players={votes.Count}, ready={data.readyPlayers}");
+        
+        if (_netService?.Server != null)
+        {
+            _writer.Reset();
+            _writer.Put((byte)9);
+            _writer.Put(json);
+            _netService.SendToAll(_writer, DeliveryMethod.ReliableOrdered);
+            Log.Info($"[VOTE] Sent to all players via DualProtocolServer");
+        }
+        else
+        {
+            BroadcastJson(data);
+            Log.Warn("[VOTE] Fallback to NetManager broadcast");
+        }
     }
     
     public void BroadcastForceSceneLoad(string sceneId)
@@ -333,8 +373,34 @@ public class PlayerListEntry
 public class SceneVoteSync
 {
     public string type { get; set; } = "sceneVote";
-    public string targetScene { get; set; } = "";
-    public List<VoteEntry> votes { get; set; } = new();
+    public int voteId { get; set; } = 1;
+    public bool active { get; set; } = true;
+    public string targetSceneId { get; set; } = "";
+    public string targetSceneDisplayName { get; set; } = "";
+    public string curtainGuid { get; set; } = "";
+    public string locationName { get; set; } = "";
+    public bool notifyEvac { get; set; }
+    public bool saveToFile { get; set; } = true;
+    public bool useLocation { get; set; }
+    public string hostSceneId { get; set; } = "";
+    public PlayerListData playerList { get; set; } = new();
+    public int totalPlayers { get; set; }
+    public int readyPlayers { get; set; }
+    public string timestamp { get; set; } = "";
+}
+
+public class PlayerListData
+{
+    public PlayerInfoData[] items { get; set; } = Array.Empty<PlayerInfoData>();
+}
+
+public class PlayerInfoData
+{
+    public string playerId { get; set; } = "";
+    public string playerName { get; set; } = "";
+    public string steamId { get; set; } = "";
+    public string steamName { get; set; } = "";
+    public bool ready { get; set; }
 }
 
 public class VoteEntry
