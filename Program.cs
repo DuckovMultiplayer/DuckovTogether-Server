@@ -16,6 +16,7 @@ using DuckovTogether.Core.Security;
 using DuckovTogether.Core.World;
 using DuckovTogether.Net;
 using DuckovTogether.Plugins;
+using DuckovTogetherServer.Core.Logging;
 
 namespace DuckovTogether;
 
@@ -27,12 +28,13 @@ class Program
     
     static void Main(string[] args)
     {
+        Log.Initialize("logs", LogLevel.Debug);
+        
         Console.Title = "Duckov Headless Server";
-        Console.WriteLine("===========================================");
-        Console.WriteLine("  Duckov Coop Mod - Headless Server");
-        Console.WriteLine("  Version: 1.0.0");
-        Console.WriteLine("===========================================");
-        Console.WriteLine();
+        Log.Info("===========================================");
+        Log.Info("  Duckov Coop Mod - Headless Server");
+        Log.Info("  Version: 1.0.0");
+        Log.Info("===========================================");
         
         var configPath = "server_config.json";
         var config = ServerConfig.Load(configPath);
