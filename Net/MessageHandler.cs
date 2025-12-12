@@ -527,6 +527,12 @@ public class MessageHandler
     {
         try
         {
+            if (reader.AvailableBytes < 10)
+            {
+                Console.WriteLine($"[ClientStatus] Not enough bytes: {reader.AvailableBytes}");
+                return;
+            }
+            
             var endPoint = reader.GetString();
             var playerName = reader.GetString();
             var isInGame = reader.GetBool();
@@ -539,18 +545,24 @@ public class MessageHandler
             var rotW = reader.GetFloat();
             var sceneId = reader.GetString();
             
-            var equipCount = reader.GetInt();
-            for (int i = 0; i < equipCount; i++)
+            if (reader.AvailableBytes >= 4)
             {
-                reader.GetInt();
-                reader.GetString();
+                var equipCount = reader.GetInt();
+                for (int i = 0; i < equipCount && reader.AvailableBytes >= 4; i++)
+                {
+                    reader.GetInt();
+                    if (reader.AvailableBytes >= 1) reader.GetString();
+                }
             }
             
-            var weaponCount = reader.GetInt();
-            for (int i = 0; i < weaponCount; i++)
+            if (reader.AvailableBytes >= 4)
             {
-                reader.GetInt();
-                reader.GetString();
+                var weaponCount = reader.GetInt();
+                for (int i = 0; i < weaponCount && reader.AvailableBytes >= 4; i++)
+                {
+                    reader.GetInt();
+                    if (reader.AvailableBytes >= 1) reader.GetString();
+                }
             }
             
             var player = _netService.GetPlayer(peerId);
@@ -561,8 +573,6 @@ public class MessageHandler
                 player.SceneId = sceneId;
                 player.Position = new System.Numerics.Vector3(posX, posY, posZ);
                 player.LastUpdate = DateTime.Now;
-                
-                Console.WriteLine($"[Status] {playerName} - InGame: {isInGame}, Scene: {sceneId}");
             }
         }
         catch (Exception ex)
