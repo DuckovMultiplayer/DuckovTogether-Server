@@ -14,6 +14,7 @@ using DuckovNet;
 using DuckovTogether.Core;
 using DuckovTogether.Core.GameLogic;
 using DuckovTogetherServer.Core.Logging;
+using Newtonsoft.Json;
 
 namespace DuckovTogether.Net;
 
@@ -298,7 +299,33 @@ public class HeadlessNetService : INetEventListener
         
         OnPlayerConnected?.Invoke(peer.Id, state);
         
+        SendSetIdToPeer(peer, state.EndPoint);
         SendServerState(peer.Id);
+    }
+    
+    private void SendSetIdToPeer(NetPeer peer, string endPoint)
+    {
+        try
+        {
+            var setIdData = new
+            {
+                type = "setId",
+                networkId = endPoint,
+                timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")
+            };
+            
+            var json = JsonConvert.SerializeObject(setIdData);
+            var writer = new NetDataWriter();
+            writer.Put((byte)9);
+            writer.Put(json);
+            
+            peer.Send(writer, DeliveryMethod.ReliableOrdered);
+            Log.Info($"[SetId] Sent to peer {peer.Id}: {endPoint}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"SendSetIdToPeer failed for peer {peer.Id}");
+        }
     }
     
     private void SendServerState(int peerId)
