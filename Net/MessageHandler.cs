@@ -239,12 +239,8 @@ public class MessageHandler
         _writer.Put((byte)MessageType.JsonMessage);
         _writer.Put(json);
         
-        var peer = GetPeerById(peerId);
-        if (peer != null)
-        {
-            _netService.SendToPeer(peer, _writer);
-            Log.Info($"Sent SetId to peer {peerId}: {endPoint}");
-        }
+        _netService.SendToPeer(peerId, _writer);
+        Log.Info($"Sent SetId to peer {peerId}: {endPoint}");
     }
     
     private NetPeer? GetPeerById(int peerId)
