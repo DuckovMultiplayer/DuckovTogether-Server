@@ -203,7 +203,8 @@ public class SyncManager
         };
         
         var json = JsonConvert.SerializeObject(data);
-        Log.Info($"[VOTE] Broadcasting sceneVote: target={sceneId}, players={votes.Count}, ready={data.readyPlayers}");
+        Log.Info($"[VOTE] Broadcasting sceneVote: target={sceneId}, active={data.active}, players={votes.Count}, ready={data.readyPlayers}");
+        Log.Debug($"[VOTE] JSON: {json}");
         
         if (_netService?.Server != null)
         {
