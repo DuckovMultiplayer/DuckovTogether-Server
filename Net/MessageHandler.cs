@@ -498,6 +498,8 @@ public class MessageHandler
         }
     }
     
+    private readonly HashSet<int> _setIdSentPeers = new();
+    
     private void HandleJsonClientStatus(int peerId, string json)
     {
         try
@@ -511,6 +513,13 @@ public class MessageHandler
                 player.SceneId = (string?)data.sceneId ?? "";
                 player.LastUpdate = DateTime.Now;
                 Log.Debug($"JsonStatus: {player.PlayerName} - InGame: {player.IsInGame}, Scene: {player.SceneId}");
+                
+                if (!_setIdSentPeers.Contains(peerId))
+                {
+                    _setIdSentPeers.Add(peerId);
+                    SendSetId(peerId, player.EndPoint);
+                    Log.Info($"[SetId] Re-sent to peer {peerId} on first clientStatus");
+                }
             }
         }
         catch (Exception ex) { Log.Error(ex, "Parse error"); }
