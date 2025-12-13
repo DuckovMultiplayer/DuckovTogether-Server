@@ -39,6 +39,11 @@ public class SyncManager
         Log.Info("SyncManager initialized");
     }
     
+    public IEnumerable<PlayerState>? GetAllPlayers()
+    {
+        return _netService?.GetAllPlayers();
+    }
+    
     public void Update()
     {
         var now = DateTime.Now;
@@ -188,13 +193,16 @@ public class SyncManager
             hostSceneId = hostScene,
             playerList = new PlayerListData
             {
-                items = votes.Select(kv => new PlayerInfoData
-                {
-                    playerId = kv.Key,
-                    playerName = players.FirstOrDefault(p => p.PeerId.ToString() == kv.Key)?.PlayerName ?? $"Player_{kv.Key}",
-                    steamId = "",
-                    steamName = "",
-                    ready = kv.Value
+                items = votes.Select(kv => {
+                    var player = players.FirstOrDefault(p => p.EndPoint == kv.Key);
+                    return new PlayerInfoData
+                    {
+                        playerId = kv.Key,
+                        playerName = player?.PlayerName ?? $"Player_{kv.Key}",
+                        steamId = "",
+                        steamName = "",
+                        ready = kv.Value
+                    };
                 }).ToArray()
             },
             totalPlayers = votes.Count,

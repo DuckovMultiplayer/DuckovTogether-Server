@@ -79,11 +79,12 @@ public class ClientRequestHandler
         var req = JsonConvert.DeserializeObject<SceneVoteRequest>(json);
         if (req == null) return;
         
-        var player = GameServer.Instance.Saves.PlayerSaves.Values
-            .FirstOrDefault(p => p.PlayerId.GetHashCode() == peerId);
+        var players = SyncManager.Instance.GetAllPlayers();
+        var playerState = players?.FirstOrDefault(p => p.PeerId == peerId);
+        var playerId = playerState?.EndPoint ?? peerId.ToString();
         
-        WorldStateManager.Instance.StartVote(req.targetScene, player?.PlayerId ?? peerId.ToString());
-        Log.Info($"Player {peerId} requested vote for: {req.targetScene}");
+        WorldStateManager.Instance.StartVote(req.targetScene, playerId);
+        Log.Info($"Player {peerId} (EndPoint: {playerId}) requested vote for: {req.targetScene}");
     }
     
     private void HandleSceneVoteReady(int peerId, string json)
@@ -91,8 +92,12 @@ public class ClientRequestHandler
         var req = JsonConvert.DeserializeObject<SceneVoteReady>(json);
         if (req == null) return;
         
-        WorldStateManager.Instance.SetVoteReady(peerId.ToString(), req.ready);
-        Log.Debug($"Player {peerId} set ready: {req.ready}");
+        var players = SyncManager.Instance.GetAllPlayers();
+        var playerState = players?.FirstOrDefault(p => p.PeerId == peerId);
+        var playerId = playerState?.EndPoint ?? peerId.ToString();
+        
+        WorldStateManager.Instance.SetVoteReady(playerId, req.ready);
+        Log.Debug($"Player {peerId} (EndPoint: {playerId}) set ready: {req.ready}");
     }
     
     private void HandleClientStatus(int peerId, string json)
